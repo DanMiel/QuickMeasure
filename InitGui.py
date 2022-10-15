@@ -31,10 +31,6 @@ import FreeCAD
 import FreeCADGui
 import os
 import QM_dict
-#print('************************************')
-#mypath = os.path.dirname(__file__)
-#print(mypath + '===========================')
-
 import sys
 PyVersion = sys.version_info[0]
 if PyVersion == 2:
@@ -57,8 +53,7 @@ class QuickMeasure (Workbench):
 
 
         DiagnosticCommands = [
-            'MeasureDialog'
-           
+            'MeasureDialog'           
             ]
        
         self.appendToolbar(
@@ -74,12 +69,12 @@ class QuickMeasure (Workbench):
 
     def ContextMenu(self, recipient):
         import FreeCAD, FreeCADGui
-
+        
         self.appendContextMenu(
             "Measure Dialog",
             [                      
                 'MeasureDialog'
                 ]
             )
-
 Gui.addWorkbench(QuickMeasure())
+ContextMenu
