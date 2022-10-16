@@ -28,7 +28,7 @@ written by Dan Miel
 '''
 
 import FreeCADGui
-
+import CD_Measure
 class QuickMeasure (Workbench):
 
     def __init__(self):
