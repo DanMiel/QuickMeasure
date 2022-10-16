@@ -32,12 +32,6 @@ import FreeCADGui
 import os
 import QM_dict
 import sys
-PyVersion = sys.version_info[0]
-if PyVersion == 2:
-    import a2p_Resources2
-else:
-    import a2p_Resources3
-
 
 class QuickMeasure (Workbench):
 
