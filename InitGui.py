@@ -27,48 +27,27 @@ Quick Measure program
 written by Dan Miel
 '''
 
-import FreeCAD
 import FreeCADGui
-import os
-import QM_dict
-import sys
 
 class QuickMeasure (Workbench):
 
     def __init__(self):
-        import QM_dict
-        mypath = QM_dict.getdir(None)
-        self.__class__.Icon = mypath + "/icons/QuickMeasure.svg"
-        self.__class__.MenuText = 'MeasureDialog'
+        self.__class__.MenuText = 'Quick Measure'
 
     def Initialize(self):
         FreeCADGui.updateLocale()
-        import CD_Measure
 
-
-        DiagnosticCommands = [
-            'MeasureDialog'           
+        MeasureCommands = [
+            'QuickMeasureTool'           
             ]
        
         self.appendToolbar(
-           'MeasureBar',
-           DiagnosticCommands
+           'Quick Measure',
+           MeasureCommands
            )
-
     def Activated(self):
         pass
 
     def Deactivated(self):
         pass
-
-    def ContextMenu(self, recipient):
-        import FreeCAD, FreeCADGui
-        
-        self.appendContextMenu(
-            "Measure Dialog",
-            [                      
-                'MeasureDialog'
-                ]
-            )
 Gui.addWorkbench(QuickMeasure())
-ContextMenu

@@ -172,7 +172,7 @@ class measureClass:
                         g.msg = 'radius = ' + f0.radius
                     ''' Area added for all surfaces. '''
                     area = self.convertArea([f0.area])[0]
-                    g.msg = g.msg + '\Area = {}\nFace Info'.format(area)
+                    g.msg = g.msg + '\nArea = {}\nFace Info'.format(area)
 
                 if 'Edge' in f0.fname:
                     if 'Line' in f0.type:
@@ -646,12 +646,12 @@ Selecting two will show the distance and information of both features.
 
 """
 
-class MeasureDialog:
+class QuickMeasure:
     def GetResources(self):
         mypath = os.path.dirname(__file__)
         return {
              'Pixmap': mypath + "/icons/QuickMeasure.svg",
-             'MenuText': 'Measure Dialog',
+             'MenuText': 'Quick Measure',
              'ToolTip': toolTipText
              }
 
@@ -673,7 +673,7 @@ class MeasureDialog:
 
     def IsActive(self):
         return(True)
-FreeCADGui.addCommand('MeasureDialog', MeasureDialog())
+FreeCADGui.addCommand('QuickMeasureTool', QuickMeasure())
 #==============================================================================
 
 class mApp(QtGui.QWidget):
