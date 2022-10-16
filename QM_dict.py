@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 #***************************************************************************
 #*                                                                         *
-#*   Copyright (c) 2022 Dan Miel                                           *
+#*   Copyright (c) 2018 kbwbe                                              *
 #*                                                                         *
+#*   Portions of code based on hamish's assembly 2                         *
 #*                                                                         *
 #*   This program is free software; you can redistribute it and/or modify  *
 #*   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -21,36 +21,18 @@
 #*   USA                                                                   *
 #*                                                                         *
 #***************************************************************************
-
-''' 
-Quick Measure program
-written by Dan Miel
-'''
 import os
-import FreeCADGui
-import CD_Measure
-class QuickMeasure (Workbench):
+import PySide
+from PySide import QtGui, QtCore
+from PySide import QtUiTools
+from PySide.QtGui import *
+#class info():
+#    def __init__(self):
+#        self.name = None
 
-    def __init__(self):
-        import QM_dict
-        mypath = QM_dict.getdir(None)
-        self.__class__.Icon = mypath + "/icons/QuickMeasure.svg"
-        self.__class__.MenuText = 'Quick Measure'
 
-    def Initialize(self):
-        FreeCADGui.updateLocale()
+def getdir(self):
+    dirm =  os.path.dirname(__file__)
 
-        MeasureCommands = [
-            'QuickMeasureTool'           
-            ]
-       
-        self.appendToolbar(
-           'Quick Measure',
-           MeasureCommands
-           )
-    def Activated(self):
-        pass
+    return(dirm)
 
-    def Deactivated(self):
-        pass
-Gui.addWorkbench(QuickMeasure())
