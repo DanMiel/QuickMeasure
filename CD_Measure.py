@@ -650,7 +650,7 @@ class QuickMeasure:
     def GetResources(self):
         mypath = os.path.dirname(__file__)
         return {
-             'Pixmap': mypath + "/icons/QuickMeasure.svg",
+             'Pixmap': mypath + "/QuickMeasure.svg",
              'MenuText': 'Quick Measure',
              'ToolTip': toolTipText
              }
