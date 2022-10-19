@@ -53,16 +53,21 @@ class info:
         self.centerofmass = 0
         self.bodyname = ''
         self.cylinderlength = ''
+        self.isdia = False
+        self.dia = 0
+        self.dia2 = 0
         self.entity = None
         self.fname = ''
         self.type = '' #Circle or Line
         self.length = 0
         self.Name = "No info"
         self.normal = 0
+        self.object = None
         self.perimeter = 0
         self.point1 = 0
         self.point2 = 0
         self.radius = 0
+        self.radius2 = 0
         self.shape = None
         self.x = 'n'
         self.y = 'n'
@@ -74,12 +79,16 @@ class info:
         self.centerofmass = 0
         self.cylinderlength = ''
         self.bodyname = ''
+        self.isdia - False
+        self.dia = 0
+        self.dia2 = 0
         self.entity = None
         self.fname = ''
         self.type = ''
         self.length = 0 
         self.Name = " No info"
         self.normal = 0
+        self.object = None
         self.perimeter = 0
         self.point1 = 0
         self.point2 = 0
@@ -101,7 +110,7 @@ class measureClass:
     def __init__(self):
         pass
     def measureSelected(self):
-        selections = FreeCADGui.Selection.getSelectionEx()
+        selections = FreeCADGui.Selection.getSelectionEx('', 0)
         selectionslen = len(selections)
         if selectionslen == 0:
             return()
@@ -137,29 +146,42 @@ class measureClass:
             f0.fname = selections[0].SubElementNames[0]
             f0.entity = selections[0].Object.getSubObject(f0.fname)
             f0.shape = selections[0].Object.Shape
-
-            if "Vertex" in f0.fname:self.getvertex(f0)
-            if "Face" in f0.fname:self.getface(f0)
-            if "Edge" in f0.fname:
-                self.getedge(f0)
-                ''' Next lines are future feature '''
-                #midpoint0 = Part.Vertex(f0.xyz)
-                #p = Part.show(midpoint0, 'MidPoint1')
-                #p.ViewObject.PointSize = 5
+            f0.object = selections[0].Object
+            if f0.entity.ShapeType == 'Vertex':self.getvertex(f0)
+            #if "Vertex" in f0.fname:self.getvertex(f0)
+            # ******************************
+            #if 'Vertex' in f0.fname:
+            ##sels = FreeCADGui.Selection.getSelectionEx('',0)
+            ##for sel in sels:
+            ##    for path in sel.SubElementNames:# if sel.SubElementNames else ['']:
+            ##        print('path = ')
+            ##        print(path)
+            ##        shape = sel.Object.getSubObject(path)
+            ##        if shape.ShapeType == 'Vertex':
+            ##            print(f'{sel.Object.Name}.{path} Global Position is {shape.Point}')
+            ##        elif shape.ShapeType == 'Edge' or shape.ShapeType == 'Face':
+            ##            print(f'{sel.Object.Name}.{path} Vertex Global Positions are {[v.Point for v in shape.Vertexes]}')
+            ##        else:
+            ##            print(f'{sel.Object.Name}.{path} is a {shape.ShapeType}')
+            ##                #you can extract COG etc. from shape
+            if f0.entity.ShapeType == "Face":self.getface(f0)
+            if f0.entity.ShapeType == "Edge":self.getedge(f0)
             if selectionslen == 1 and featsInf0 == 1:
                 ''' If 1 feature is selected then measure feature.'''
                 if 'Vertex' in f0.fname:
-                    g.msg = 'x = {}\ny = {}\ny = {}'.format(f0.x, f0.y, f0.z)
+                    g.msg = 'x = {}\ny = {}\nz = {}'.format(f0.x, f0.y, f0.z)
 
                 if 'Face' in f0.fname:
                     if 'Sphere' in f0.type:
                         g.msg = ' Sphere Radius = {}\nCenter\nx = {}\ny = {}\nz = {}'.format(f0.radius, f0.x ,f0.y ,f0.z)
                     if 'Cylinder' in f0.type:
-                        g.msg = 'Cylinder Radius = '+ f0.radius
+                        typ, dim, dim2 = self.writedia1(f0)
+                        g.msg =f'Cyinder\n{typ}1 = {dim}' 
                         if len(str(f0.cylinderlength)) != 0:
                             g.msg = g.msg + '\nLength = ' + str(f0.cylinderlength)
                     if 'Cone' in f0.type:
-                        g.msg = 'Cone\nRadius1 = {}\nRadius2 = {}'.format(f0.radius, f0.radius2)
+                        typ, dim, dim2 = self.writedia1(f0)
+                        g.msg =f'Cone\n{typ}1 = {dim}\n{typ}2 = {dim2}' 
                         if len(str(f0.cylinderlength)) != 0:
                             g.msg = g.msg + '\nLength = ' + str(f0.cylinderlength)
                     if 'Plane' in f0.type:
@@ -180,9 +202,8 @@ class measureClass:
                         g.msg = 'Length = {}\nCenter of line\nx = {}\ny = {}\nz = {}'.format(length, f0.x, f0.y, f0.z)
                     if 'Circle' in f0.type: 
                         circ = self.convertLen([f0.length])[0]
-                        radius = self.convertLen([f0.radius])[0]
-                        g.msg = 'Radius = {}\nEdge Length = {}\nx = {}\ny = {}\nz = {}'.format(radius, circ, f0.x, f0.y, f0.z)
-
+                        typ, dim, dim2 = self.writedia1(f0)
+                        g.msg = f'{typ} = {dim}\nEdge Length = {circ}\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
                     if 'Spline' in f0.type:
                         g.msg = 'Spline\nLength = ' + self.convertLen([f0.length])[0]
                 if g.msg == '':
@@ -200,10 +221,12 @@ class measureClass:
                     f1.fname = selections[0].SubElementNames[1]
                     f1.shape = selections[0].Object.Shape
                     f1.entity = selections[0].Object.getSubObject(f1.fname)
+                    f1.object = selections[0].Object
                 else: # If the features are in a (different bodys) get f1.
                     f1.fname = selections[1].SubElementNames[0]
                     f1.shape = selections[1].Object.Shape
                     f1.entity = selections[1].Object.getSubObject(f1.fname)
+                    f1.object = selections[1].Object
                 # Get information for second feature
                 if 'Vertex' in f1.fname:self.getvertex(f1)
                 if "Face" in f1.fname:self.getface(f1)
@@ -284,6 +307,7 @@ class measureClass:
         #Find edge and other
         featnames = f0.fname + f1.fname
         feattypes = f0.type + f1.type
+
         if 'Face' in featnames:
             #g.header = 'in Face check'
             if 'Sphere' in feattypes:
@@ -298,7 +322,7 @@ class measureClass:
             if 'Round' in feattypes and 'Line' in feattypes:
                 g.header = 'Mid Line to Face Center'
                 g.msg = self.getMsgBetween()
-        if "Plane" in feattypes and 'Circle' in feattypes:
+            if "Plane" in feattypes and 'Circle' in feattypes:
                 p2vDist = ''
                 if 'Plane' in f0.type:
                     p2vDist = self.getvertexToPlane(f0.entity, f1.xyz)
@@ -321,7 +345,8 @@ class measureClass:
                 elif myangle == 0 or myangle == 180:
                     
                     d = f0.entity.Surface.projectPoint(f1.entity.valueAt(0, 0), 'Distance')
-                    dists = self.convertLen([d[0]])
+                    d = f0.xyz.distanceToPlane(f1.xyz,f1.normal)
+                    dists = self.convertLen([d])
                     g.msg = 'Planes are Parallel\nDist = ' + dists[0]
                 else:
                     g.msg = "angle between faces = " + anglestring[0]
@@ -335,8 +360,8 @@ class measureClass:
             if 'Toroid' in f0.type and'Toroid' in f1.type:
                 g.header = 'Radius1 and Radius2'
                 g.msg = 'Radius1 = {}\nRadius2 = {}'.format( f0.radius, f1.radius)
-            if 'Cylinder' in f0.type and 'Cylinder' in f1.type:
-                g.header = 'Cylinder to cylinder'
+            if 'Cylinder' in f0.type and 'Cylinder' in f1.type or 'Cone' in f0.type or 'Cone' in f1.type:
+                g.header = 'Center Line to Center Line'
                 ''' Find angle of between centerlines. '''
                 if f0.point1 == 0 or f0.point2 == 0:
                     g.msg = 'No Angle because:\nFirst Cylinder ends in a spline'
@@ -346,11 +371,10 @@ class measureClass:
                     dist, parallel = self.findDistBetweenLines(f0.point1, f0.point2, f1.point1, f1.point2)
                     dist = self.convertLen([dist])[0]
                     if parallel:
-                        g.msg = 'Cylinders are parallel\nDist between = ' + dist
+                        g.msg = 'Features are parallel\nDist between = ' + dist
                     else:
                         degstr, angle = self.findanglebetweenlines(f0.point2, f0.point1, f1.point1, f1.point2)
-                        g.msg = 'Cylinders are not parrallel\nAngle = {}\nClosest dist between CL = {}'.format(degstr, dist)
-                g.msg = g.msg + '\nRadius1 = {}\nRadius2 = {}'.format( f0.radius, f1.radius)
+                        g.msg = 'Features are not parrallel\nAngle = {}\nClosest dist between CL = {}'.format(degstr, dist)
             feattypes = f0.type + f1.type
             if 'Sphere' in feattypes and 'Round' in feattypes:
                 g.header = 'Sphere center to round face center'
@@ -360,7 +384,7 @@ class measureClass:
                 if 'Plane' in f0.type:
                     p2vDist = self.getvertexToPlane(f0.entity, f1.xyz)
                 else:
-                    p2vDist = self.getvertexToPlane(f1.entity, f0.yxz)
+                    p2vDist = self.getvertexToPlane(f1.entity, f0.xyz)
                 g.header = 'Center of Sphere to Plane'
                 g.msg = 'Distance = ' + self.convertLen([p2vDist])[0]
             area = self.convertArea([f0.area + f1.area])[0]
@@ -396,6 +420,28 @@ class measureClass:
             myLength = self.convertLen([totlen])[0]
             g.header = 'Total Length of {} Edges'.format(numoffeats)
             g.msg = 'Length = ' + myLength
+
+
+
+    def writedia1(self,ci):
+        if ci.isdia:
+            dimtype = 'Diameter'
+            dim = ci.dia
+            dim2 = ci.dia2
+        else:
+            dimtype = 'Radius'
+            dim = ci.radius
+            dim2 = ci.radius2
+        return([dimtype, dim, dim2])
+    
+    def writedia2(self,ci):
+        if ci.dia2 == 0:
+            dimtype = 'Radius'
+            dim = ci.radius2
+        else:
+            dimtype = 'Diameter'
+            dim = ci.dia2
+        return([dimtype,dim])    
 
     def getMsgBetween(self):
         # Finds distant and x y z, then returns results in a string
@@ -450,30 +496,55 @@ class measureClass:
         ci.type = str(face.Surface)
         if len(face.Edges) == 1:
             ''' Round surfaces '''
-            ci.xyz = face.CenterOfMass
-            ci.x, ci.y, ci.z = self.convertLen(ci.xyz)
-            ci.type = 'RoundPlane'
+            if 'Spline' in str(face.Edges[0].Curve):
+                g.msg = 'The edge is a spline'
+            else:
+                ci.xyz = face.CenterOfMass
+                self.getvector(ci,ci)
+                #ci.x, ci.y, ci.z = self.convertLen(ci.xyz)
+                ci.type = 'RoundPlane'
         if len(face.Edges) == 2:
             ''' Counterbore type '''
             ci.xyz = face.CenterOfMass
-            ci.x, ci.y, ci.z = self.convertLen(ci.xyz)
-            ci.type = 'RoundPlane'
-            ci.radius = self.convertLen([face.Edges[0].Curve.Radius])[0]
-            ci.radius2 = self.convertLen([face.Edges[1].Curve.Radius])[0]
+            self.getvector(ci,ci)
+            if 'Spline' in str(face.Edges[0].Curve) or 'Spline' in str(face.Edges[1].Curve):
+                g.msg = 'One or both edges is a spline'
+            else:
+                #ci.x, ci.y, ci.z = self.convertLen(ci.xyz)
+                ci.type = 'RoundPlane'
+                if len(face.Edges[0].Vertexes) == 1:
+                    ci.radius = self.convertLen([face.Edges[0].Curve.Radius])[0]
+                    ci.radius2 = self.convertLen([face.Edges[1].Curve.Radius])[0]
+                else:
+                    ci.dia = self.convertLen([2 * face.Edges[0].Curve.Radius])[0]
+                    ci.dia2 = self.convertLen([2 * face.Edges[1].Curve.Radius])[0]
+        
         ci.normal = face.normalAt(0, 0)
         ci.area = face.Area
+        if "Plane" in ci.type and ci.xyz == 'n':
+            ci.xyz = ci.entity.CenterOfMass
+
         if 'Cylinder' in ci.type or 'Cone' in ci.type:
             ''' Find two centers in cylinders'''
             edgetypes2 = ''
+            
             for e in face.Edges:
                 rstr = str(e.Curve)
                 if 'Radius' in rstr:
                     if ci.point1 == 0:
+                        #Get first Radius
+                        if len(e.Vertexes) == 1:
+                            ci.isdia = True
                         ci.point1 = e.Curve.Center
                         ci.radius = self.convertLen([e.Curve.Radius])[0]
+                        ci.dia = self.convertLen([2 * e.Curve.Radius])[0]
                     if ci.point1 != 0 and e.Curve.Center != ci.point1:
-                        ci.point2 = e.Curve.Center
+                        # Get second radius
+                        if len(e.Vertexes) == 1:
+                            ci.isdia = True
                         ci.radius2 = self.convertLen([e.Curve.Radius])[0]
+                        ci.dia2 = self.convertLen([2 * e.Curve.Radius])[0]
+                        ci.point2 = e.Curve.Center
                 else:
                     edgetypes2 = edgetypes2 + rstr
             ''' If the end of a cylinder is s spline, report it as spline '''
@@ -485,10 +556,13 @@ class measureClass:
                 dis = self.findpointsdistance(ci.point1, ci.point2)[3]
                 if dis != 0:
                     ci.cylinderlength = self.convertLen([dis])[0]
-            #ci.radius = self.convertLen([ci.entity.Surface.Radius])[0]
+            ci.radius = self.convertLen([ci.entity.Surface.Radius])[0]
+            #self.getvector(ci.entity.Surface.Center, ci)
+            ci.xyz = ci.entity.Surface.Center
             self.getvector(ci.entity.Surface.Center, ci)
         if 'Sphere' in ci.type:
             ci.radius = self.convertLen([ci.entity.Surface.Radius])[0]
+            ci.xyz = ci.entity.Surface.Center
             self.getvector(ci.entity.Surface.Center, ci)
         if 'Toroid' in ci.type:
             ci.radius = self.convertLen([ci.entity.Edges[0].Curve.Radius])[0]
@@ -499,24 +573,31 @@ class measureClass:
         ci.length = edge.Length
         ci.type = str(edge.Curve)
         if 'Line' in ci.type:
+            ci.xyz = edge.CenterOfMass
             self.getvector(edge.CenterOfMass, ci)
             ci.point1 = edge.Vertexes[0].Point
             ci.point2 = edge.Vertexes[1].Point
         if 'Circle' in ci.type:
-            ci.radius = edge.Curve.Radius
+            ci.radius = self.convertLen([edge.Curve.Radius])[0]
+            ci.dia = self.convertLen([2 * edge.Curve.Radius])[0]
+            if len(edge.Vertexes) == 1:
+                ci.isdia = True
+
+
             ci.xyz = edge.Curve.Center
-            self.getvector(edge.Curve.Center, ci)
+            self.getvector(ci, ci)
         return()
 
     def getvertex(self, ci):
         vertex = ci.entity
         ci.type = 'Vertex'
+        ci.xyz = vertex.Point
         self.getvector(vertex.Point, ci)
         return(ci)
-    
+
     def getvector(self, vector, ci):
-        ci.xyz = vector
-        ci.x, ci.y, ci.z = self.convertLen(vector)
+        vector = ci.xyz
+        ci.x, ci.y, ci.z = self.convertLen(ci.xyz)
         return(ci)
 
     def convertLen(self, listofvalues):
