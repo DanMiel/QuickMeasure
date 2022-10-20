@@ -34,7 +34,7 @@ class QuickMeasure (Workbench):
     def __init__(self):
         import QM_dict
         mypath = QM_dict.getdir(None)
-        self.__class__.Icon = mypath + "/QuickMeasure.svg"
+        self.__class__.Icon = mypath + "/Icons/QuickMeasure.svg"
         self.__class__.MenuText = 'Quick Measure'
 
     def Initialize(self):
