@@ -169,10 +169,10 @@ class measureClass:
                 else:
                     g.header = '{} of {}'.format(f0.fname, f0.bodyname)
             featsin1 = 0
+
             if selectionslen == 2:
                 #If selection length is 2
                     featsin1 = len(selections[1].SubElementNames) #Check the number of entities in selection 1.
-
             ''' sort to see if both features are on the same body or two bodies. ''' 
             if selectionslen == 1 and featsInf0 == 2 or selectionslen == 2 and featsInf0 == 1 and featsin1 == 1:
                 if selectionslen == 1: # If both features are on the (same body) get f1 feature
@@ -186,25 +186,27 @@ class measureClass:
                     f1.entity = selections[1].Object.getSubObject(f1.fname)
                     f1.object = selections[1].Object
                 # Get information for second feature
-                if 'Vertex' in f1.fname:self.getvertex(f1)
-                if "Face" in f1.fname:self.getface(f1)
-                if "Edge" in f1.fname:self.getedge(f1)
-                # Next three line send feature information to seperate sections
-                if 'Vertex' in f0.fname or 'Vertex' in f1.fname:
-                    self.checkVertexes()
-                elif 'Edge' in f0.fname or 'Edge' in f1.fname:
-                    self.checkEdges()
-                elif 'Face' in f0.fname or 'Face' in f1.fname:
-                    self.checkSurfaces()
-        if g.header == '':
-            g.header = 'Cannot calculate between selections'
+                feattypes = f0.type + f1.type
+                if not 'Toroid' in feattypes: # Toroid cannot be measured to.
+
+                    if 'Vertex' in f1.fname:self.getvertex(f1)
+                    if "Face" in f1.fname:self.getface(f1)
+                    if "Edge" in f1.fname:self.getedge(f1)
+                    # Next three line send feature information to seperate sections
+                    if 'Vertex' in f0.fname or 'Vertex' in f1.fname:
+                        self.checkVertexes()
+                    elif 'Edge' in f0.fname or 'Edge' in f1.fname:
+                        self.checkEdges()
+                    elif 'Face' in f0.fname or 'Face' in f1.fname:
+                        self.checkSurfaces()
+        if g.msg == '':
+            g.msg = 'Cannot calculate between selections'
         form1.txtboxReport.setText(g.msg + '\n' + g.header)
             #end of program
 
 
     def checkVertexes(self):
         # Check Vertexes
-        #g.header = 'For test checking vertexes'
         if "Vertex" in f0.fname and 'Vertex' in f1.fname:
             g.header = 'Vertex to Vertex'
             g.msg = self.getMsgBetween()
@@ -225,14 +227,23 @@ class measureClass:
             if 'Round' in feattypes:
                 g.header = 'Vertex to surface center'
                 g.msg = self.getMsgBetween()
-        if 'Plane' in feattypes:
-            p2vDist = ''
-            if "Plane" in f0.type:
-                p2vDist = self.getvertexToPlane(f0.entity, f1.xyz)
-            else:
-                p2vDist = self.getvertexToPlane(f1.entity, f0.xyz)
-            g.header = 'Plane to vertex'
-            g.msg = 'Distance = ' + self.convertLen([p2vDist])[0]
+            if 'Cylinder' in feattypes or 'Cone' in feattypes:
+                print(f0.fname)
+                if 'Vertex' in f0.fname:
+                    dist = f0.xyz.distanceToLine(f1.xyz, f1.entity.Surface.Axis)
+                else:
+                    dist = f1.xyz.distanceToLine(f0.xyz, f0.entity.Surface.Axis)
+                dist = self.convertLen([dist])[0]
+                g.msg = f'Distance = {dist}'
+                g.header = 'CenterLine to Vertex'
+            if 'Plane' in feattypes:
+                p2vDist = ''
+                if "Plane" in f0.type:
+                    p2vDist = self.getvertexToPlane(f0.entity, f1.xyz)
+                else:
+                    p2vDist = self.getvertexToPlane(f1.entity, f0.xyz)
+                g.header = 'Plane to vertex'
+                g.msg = 'Distance = ' + self.convertLen([p2vDist])[0]
 
 
     def checkEdges(self):
@@ -258,8 +269,7 @@ class measureClass:
             if 'Line' in feattypes:
                 dist = self.findClosestPointToLine()
                 if 'Circle' in feattypes:
-                    g.msg = f'Closest arc center to Line\n{dist}\nCenter to midLine' + self.getMsgBetween()
-                
+                    g.msg = f'Closest arc center to Line\n{dist}\nCenter to midLine' + self.getMsgBetween()                
             totlen = self.convertLen([f0.length + f1.length])[0]
             g.msg = g.msg + '\nTotal Length = ' + totlen
 
@@ -290,7 +300,9 @@ class measureClass:
                     p2vDist = self.getvertexToPlane(f1.entity, f0.xyz)
                 g.header = 'Center of Circle Edge to Plane'
                 g.msg = 'Distance = ' + self.convertLen([p2vDist])[0]
-            if 'Cylinder' in feattypes:
+            print(feattypes)
+            if 'Cylinder' in feattypes or 'Cone' in feattypes:
+                g.header = "Line to  CenterLine" 
                 dist = 0
                 if 'Line' in f0.type:
                     dist, parallel = self.findDistBetweenLines2(f0.entity.Curve.Direction, f1.entity.Surface.Axis,f0.point1,f1.point1)
@@ -303,12 +315,12 @@ class measureClass:
                     degstr, angle = self.findanglebetweenlines(f0.point2, f0.point1, f1.point1, f1.point2)
                     g.header = 'Line to CenterLine'
                     g.msg = f'Line and Centerline are not parallel\nClosest dist = {dist}\nAngle = {degstr}'
-            print('passed')
          #End of edges
 
     def checkSurfaces(self):
         #Report surfaces
-        #g.header = 'For test checking faces'
+        #if 'Toroid' in f0.type or 'Toroid' in f1.type:
+        #    return()
         if 'Face' in f0.fname and 'Face' in f1.fname:
             if 'Plane' in f0.type and'Plane' in f1.type:
                 myangle = math.degrees( f0.normal.getAngle( f1.normal))
@@ -331,9 +343,9 @@ class measureClass:
             if 'Sphere' in f0.type and'Sphere' in f1.type:
                 g.header = 'Sphere center to Sphere center'
                 g.msg = self.getMsgBetween()
-            if 'Toroid' in f0.type and'Toroid' in f1.type:
-                g.header = 'Radius1 and Radius2'
-                g.msg = 'Radius1 = {}\nRadius2 = {}'.format( f0.radius, f1.radius)
+            ##if 'Toroid' in f0.type and'Toroid' in f1.type:
+            ##    g.header = 'Radius1 and Radius2'
+            ##    g.msg = 'Radius1 = {}\nRadius2 = {}'.format( f0.radius, f1.radius)
             if 'Cylinder' in f0.type and 'Cylinder' in f1.type or 'Cone' in f0.type or 'Cone' in f1.type:
                 g.header = 'Center Line to Center Line'
                 ''' Find angle of between centerlines. '''
