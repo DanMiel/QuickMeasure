@@ -111,10 +111,13 @@ class measureClass:
             return()
 
         numoffeats = 0
-        for o in selections: # Find number of selected surfaces
-            numoffeats = numoffeats + len(o.SubElementNames)
-        if numoffeats > 2: # More than 2 features selected
+        for obj in selections: # Find number of selected surfaces
+            numoffeats = numoffeats + len(obj.SubElementNames)
+        if selectionslen == 2 and numoffeats == 1:
+            g.msg = 'Cannot measure feature to body'
+        elif numoffeats > 2: # More than 2 features selected
             self.check2plus(selections, selectionslen)
+        
         else:
             #At least 1 feature is selected so fill feature f0 with infomation
             f0.bodyname = selections[0].Object.Label
@@ -251,15 +254,14 @@ class measureClass:
             if 'Line' in str(f0.type) and 'Line' in str(f1.type):
                 g.header = f0.fname + ' and ' + f1.fname
                 dist, parallel = self.findDistBetweenLines2(f0.entity.Curve.Direction, f1.entity.Curve.Direction, f0.point1, f1.point1)
-                dist = self.convertLen(dist)
+                diststr = self.convertLen(dist)
                 if parallel:
-                    dist = self.convertLen(dist)
-                    g.msg = g.msg + 'Lines are parallel\nDist between lines = {}'.format(dist)
+                    g.msg = g.msg + 'Lines are parallel\nDist between lines = {}'.format(diststr)
                 else:
                     ''' Find angle of lines. '''
                     degstr, angle = self.findanglebetweenlines(f0.point1, f0.point2, f1.point1, f1.point2)
                     g.msg = 'Angle = {}'.format(degstr)
-                    g.msg = g.msg + "\nNot parallel.\nClosest distance is\n{}".format(dist)
+                    g.msg = g.msg + "\nNot parallel.\nClosest distance is\n{}".format(diststr)
             if 'Circle' in str(f0.type) and 'Circle' in str(f1.type):
                 g.header = 'Edge Center to Edge Center'
                 g.msg = self.getMsgBetween()
@@ -371,7 +373,6 @@ class measureClass:
             area = self.convertArea(f0.area + f1.area)
             g.msg = g.msg + '\nTotal Area = {}'.format(area)
             if 'Plane' in feattypes and 'Cylinder' in feattypes or 'Plane' in feattypes and 'Cone' in feattypes:
-                print('plane cylin')
                 p2vDist = ''
                 if "Plane" in f0.type:
                     if f1.point1 == 0 or f1.point2 == 0:
