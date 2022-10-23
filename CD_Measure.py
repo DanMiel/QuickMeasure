@@ -72,6 +72,7 @@ class info:
         self.radius = 0
         self.radius2 = 0
         self.shape = None
+        self.vector = 0
         self.x = 'n'
         self.y = 'n'
         self.z = 'n'
@@ -156,7 +157,6 @@ class measureClass:
                     ''' Area added for all surfaces. '''
                     area = self.convertArea(f0.area)
                     g.msg = g.msg + '\nArea = {}\nFace Info'.format(area)
-
                 if 'Edge' in f0.fname:
                     if 'Line' in f0.type:
                         length = self.convertLen(f0.length)
@@ -166,6 +166,8 @@ class measureClass:
                         g.msg = f'Radius = {f0.radius}\nDia = {f0.dia}\nEdge Length = {circ}\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
                     if 'Spline' in f0.type:
                         g.msg = 'Spline\nLength = ' + self.convertLen(f0.length)
+                    if 'Ellipse' in f0.type:
+                        g.msg = 'This is an Ellipse\nLength = ' + self.convertLen(f0.length)
                 if g.msg == '':
                     g.header = '\nI cannot measure that feature'
                 else:
@@ -231,9 +233,9 @@ class measureClass:
                 g.msg = self.getMsgBetween()
             if 'Cylinder' in feattypes or 'Cone' in feattypes:
                 if 'Vertex' in f0.fname:
-                    dist = f0.xyz.distanceToLine(f1.xyz, f1.entity.Surface.Axis)
+                    dist = f0.xyz.distanceToLine(f1.xyz, f1.vector)
                 else:
-                    dist = f1.xyz.distanceToLine(f0.xyz, f0.entity.Surface.Axis)
+                    dist = f1.xyz.distanceToLine(f0.xyz, f0.vector)
                 dist = self.convertLen(dist)
                 g.msg = f'Distance = {dist}'
                 g.header = 'CenterLine to Vertex'
@@ -253,13 +255,13 @@ class measureClass:
         if 'Edge' in f0.fname and 'Edge' in f1.fname:
             if 'Line' in str(f0.type) and 'Line' in str(f1.type):
                 g.header = f0.fname + ' and ' + f1.fname
-                dist, parallel = self.findDistBetweenLines2(f0.entity.Curve.Direction, f1.entity.Curve.Direction, f0.point1, f1.point1)
+                dist, parallel = self.findDistBetweenLines(f0.vector, f1.vector, f0.point1, f1.point1)
+                ''' Find angle of lines '''
+                degstr, angle = self.findanglebetweenlines(f0.vector, f1.vector)
                 diststr = self.convertLen(dist)
                 if parallel:
                     g.msg = g.msg + 'Lines are parallel\nDist between lines = {}'.format(diststr)
                 else:
-                    ''' Find angle of lines. '''
-                    degstr, angle = self.findanglebetweenlines(f0.point1, f0.point2, f1.point1, f1.point2)
                     g.msg = 'Angle = {}'.format(degstr)
                     g.msg = g.msg + "\nNot parallel.\nClosest distance is\n{}".format(diststr)
             if 'Circle' in str(f0.type) and 'Circle' in str(f1.type):
@@ -281,9 +283,10 @@ class measureClass:
             if 'Sphere' in feattypes:
                 if 'Line' in feattypes:
                     g.header = 'Mid Line to Sphere Center'
+                    g.msg = self.getMsgBetween()
                 if 'Circle' in feattypes:
                     g.header = 'Curve center to Sphere center'
-                g.msg = self.getMsgBetween()
+                    g.msg = self.getMsgBetween()                
             if 'Round' in feattypes and 'Circle' in feattypes:
                 g.msg = self.getMsgBetween()
                 g.header = 'Circle Center to Face Center'
@@ -298,21 +301,31 @@ class measureClass:
                     p2vDist = self.getvertexToPlane(f1.entity, f0.xyz)
                 g.header = 'Center of Circle Edge to Plane'
                 g.msg = 'Distance = ' + self.convertLen(p2vDist)
-            print(feattypes)
-            if 'Cylinder' in feattypes or 'Cone' in feattypes:
+            if 'Line' in feattypes and 'Cylinder' in feattypes or 'Cone' in feattypes:
                 g.header = "Line to CenterLine" 
                 dist = 0
-                if 'Line' in f0.type:
-                    dist, parallel = self.findDistBetweenLines2(f0.entity.Curve.Direction, f1.entity.Surface.Axis,f0.point1,f1.point1)
-                else:
-                    dist, parallel = self.findDistBetweenLines2(f1.entity.Curve.Direction, f0.entity.Surface.Axis,f1.point1,f0.point1)
+                degstr = 0
+                dist, parallel = self.findDistBetweenLines(f0.vector, f1.vector,f0.point1,f1.point1)
+                degstr, angle = self.findanglebetweenlines(f0.vector, f1.vector)
                 dist = self.convertLen(dist)
+                
                 if parallel:
                   g.msg = f'Line and Centerline are parallel\nClosest dist = {dist}'
                 else:
-                    degstr, angle = self.findanglebetweenlines(f0.point2, f0.point1, f1.point1, f1.point2)
                     g.header = 'Line to CenterLine'
                     g.msg = f'Line and Centerline are not parallel\nClosest dist = {dist}\nAngle = {degstr}'
+
+            if 'Line' in feattypes and 'Plane' in feattypes:
+                ang = math.degrees(f0.vector.getAngle(f1.vector))                
+                comang = abs(90-ang)
+                degstr = self.convertAngle(comang)
+                if comang == 0:
+                    dist = 0                    
+                    diststr = self.findPlaneToLineDistance()
+                    g.msg = 'Line is parallel to plane\nDistance = {diststr}'
+                else:
+                    g.msg = f'Line is not parralllel to plane\nDegrees = {degstr}'
+                g.header = 'Degrees beetween plane and line'                
          #End of edges
 
     def checkSurfaces(self):
@@ -339,25 +352,24 @@ class measureClass:
             if 'Sphere' in f0.type and'Sphere' in f1.type:
                 g.header = 'Sphere center to Sphere center'
                 g.msg = self.getMsgBetween()
-            feattypes = f0.type + f1.type
+
+            feattypes = f0.type + f1.type)
             if 'Cylinder' in f0.type and 'Cylinder' in f1.type or 'Cone' in f0.type or 'Cone' in f1.type:
-                if not 'Plane' in feattypes:
-                   
+                if not 'Plane' in feattypes:                   
                     g.header = 'Center Line to Center Line'
                     ''' Find angle of between centerlines. '''
-                    cl1axis = f0.entity.Surface.Axis
-                    cl2axis = f1.entity.Surface.Axis
-                    dist, parallel = self.findDistBetweenLines2(cl1axis, cl2axis, f0.point1, f1.point1)
-                    if f0.point1 == 0 or f0.point2 == 0:
-                        g.msg = 'No Length because:\nFirst Cylinder ends in a spline'
-                    elif f1.point1 == 0 or f1.point2 == 0:
-                        g.msg = 'No length because:\nSecond Cylinder ends in a spline'
-                    dist = self.convertLen(dist)
-                    if parallel:
-                        g.msg = 'Features are parallel\nDist between = ' + dist
+                    parallel = False
+                    dist = 0      
+                    dist, parallel = self.findDistBetweenLines(f0.vector, f1.vector, f0.point1, f1.point1)
+                    diststr = self.convertLen(dist)
+                    if dist == 0:
+                        g.msg = 'Cannot measure because\none of the cylinders ends in spline'                    
                     else:
-                        degstr, angle = self.findanglebetweenlines(f0.point2, f0.point1, f1.point1, f1.point2)
-                        g.msg = 'Features are not parallel\nAngle = {}\nClosest dist between CL = {}'.format(degstr, dist)
+                        if parallel:
+                            g.msg = 'Features are parallel\nDist between = ' + diststr
+                        else:
+                            degstr, angle = self.findanglebetweenlines(f0.vector,f1.vector)
+                            g.msg = 'Features are not parallel\nAngle = {}\nClosest dist between CL = {}'.format(degstr, diststr)
             
             if 'Sphere' in feattypes and 'Round' in feattypes:
                 g.header = 'Sphere center to round face center'
@@ -375,25 +387,17 @@ class measureClass:
             if 'Plane' in feattypes and 'Cylinder' in feattypes or 'Plane' in feattypes and 'Cone' in feattypes:
                 p2vDist = ''
                 if "Plane" in f0.type:
-                    if f1.point1 == 0 or f1.point2 == 0:
+                    if 'Cylinder' in f0.type and f0.point1 == 0 or 'Cylinder' in f1.type and f1.point1 == 0:
                         g.msg = 'Cylinder ends in a spline. Try edge to plane'
-                        return()
-                    p1 = round(self.getvertexToPlane(f0.entity, f1.point1), 5)
-                    p2 = round(self.getvertexToPlane(f0.entity, f1.point2), 5)
-                    p2vDist = abs(self.getvertexToPlane(f0.entity, f1.point1))
-                if 'Plane' in f1.type:
-                    if f0.point1 == 0 or f0.point2 == 0:
-                        g.msg = 'Cylinder ends in a spline. Try edge to plane'
-                        return()
-                    p1 = round(self.getvertexToPlane(f1.entity, f0.point1), 5)
-                    p2 = round(self.getvertexToPlane(f1.entity, f0.point2), 5)
-                    p2vDist = abs(self.getvertexToPlane(f1.entity, f0.point1))
-                if p1 == p2:
-                    
-                    dist = self.convertLen(p2vDist)
-                    g.msg = f'Center line and plane is parallel\nDist = {dist}'
-                else:
-                    g.msg = 'Centerline and plane are not parallel'
+                    else:
+                        ang = math.degrees(f0.vector.getAngle(f1.vector))                
+                        comang = abs(90-ang)
+                        print(round(comang,5))
+                        diststr = self.findPlaneToLineDistance()
+                        if round(comang,5) == 0:
+                            g.msg = f'Centerline and plane is parallel\nDist = {diststr}'
+                        else:
+                            g.msg = 'Centerline and plane are not parallel'
  
     def check2plus(self, selections, selectionslen):
         # check when selections are 3 or more
@@ -435,6 +439,8 @@ class measureClass:
         dist = self.convertLen(d)
         lmsg = f"Distance = {dist}\nx = {x}\ny = {y}\nz = {z}"
         return(lmsg)
+
+
  
     def getvertexToPlane(self, planefeat, measureFromVector):
         # measure from vextor is xyz vector,Sphere etc. 
@@ -445,6 +451,15 @@ class measureClass:
         distance = measureFromVector.distanceToPlane(planeloc, normAt)
         return(distance)
 
+    def findPlaneToLineDistance(self):
+        dist = 0
+        if 'Line' in f0.type:
+            dist = f0.xyz.distanceToPlane(f1.xyz, f1.vector)
+        else:
+            dist = f1.xyz.distanceToPlane(f0.xyz, f0.vector)                    
+        diststr = self.convertLen(dist)
+        return(diststr)
+
     def findClosestPointToLine(self):
         if 'Line' in f0.type:
             direction = f0.entity.Curve.Direction
@@ -454,26 +469,29 @@ class measureClass:
             dist = f0.xyz.distanceToLine(f1.xyz, direction)
         return(self.convertLen(dist))
 
-    def findDistBetweenLines2(self, line1, line2, point1, point2):
+    def findDistBetweenLines(self, line1Vector, line2Vector, pointOnLine1, pointOnLine2):
         distoline = 0
         parallel = False
-        dir1 = line1
-        dir2 = line2
-        if dir1.isEqual(dir2, 1e-12) or dir1.isEqual(-dir2, 1e-12):
-            distoline = point1.distanceToLine(point2, dir2)
+        if pointOnLine1 == 0:
+            return([distoline, parallel])
+        if pointOnLine2 == 0:
+            return([distoline, parallel])
+        if line1Vector.isEqual(line2Vector, 1e-12) or line1Vector.isEqual(-line2Vector, 1e-12):
+            distoline = pointOnLine1.distanceToLine(pointOnLine2, line2Vector)
             parallel = True
         else: # treat as skew
-            n = dir1.cross(dir2).normalize()
-            distoline = abs((point1 - point2).dot(n))
+            n = line1Vector.cross(line2Vector).normalize()
+            distoline = abs((pointOnLine1 - pointOnLine2).dot(n))
         return([distoline, parallel])
 
-    def findanglebetweenlines(self, line0vertex1, l0v2, l1v1, l1v2):
-        vec1 = line0vertex1 - l0v2
-        vec2 = l1v2 - l1v1
-        angle = vec1.getAngle(vec2) # In radians
+    def findanglebetweenlines(self, line1Vector, line2Vector):
+        angle = line1Vector.getAngle(line2Vector) # In radians
         deg = math.degrees(angle)
         degstring = self.convertAngle(deg)
         return([degstring, angle])
+
+
+
 
     def getface(self, ci): # ci is for class.info
         face = ci.entity
@@ -491,11 +509,11 @@ class measureClass:
         ci.area = face.Area
         if "Plane" in ci.type and ci.xyz == 'n':
             ci.xyz = ci.entity.CenterOfMass
-
+            ci.vector = ci.entity.Surface.Axis
         if 'Cylinder' in ci.type or 'Cone' in ci.type:
             ''' Find two centers in cylinders'''
             edgetypes2 = ''
-            
+            ci.vector = ci.entity.Surface.Axis
             for e in face.Edges:
                 rstr = str(e.Curve)
                 if 'Radius' in rstr:
@@ -540,6 +558,7 @@ class measureClass:
             self.getvector(edge.CenterOfMass, ci)
             ci.point1 = edge.Vertexes[0].Point
             ci.point2 = edge.Vertexes[1].Point
+            ci.vector = edge.Curve.Direction
         if 'Circle' in ci.type:
             ci.radius = self.convertLen(edge.Curve.Radius)
             ci.dia = self.convertLen(2 * edge.Curve.Radius)
@@ -550,10 +569,8 @@ class measureClass:
         return()
 
     def getvertex(self, ci):
-        num = int(ci.fname[6:]) -1
-        vertex = ci.shape.Vertexes[num]
+        vertex = ci.entity
         ci.type = 'Vertex'
-        ci.entity = vertex
         ci.xyz = vertex.Point
         self.getvector(ci.xyz, ci)
         return(ci)
