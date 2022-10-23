@@ -353,7 +353,7 @@ class measureClass:
                 g.header = 'Sphere center to Sphere center'
                 g.msg = self.getMsgBetween()
 
-            feattypes = f0.type + f1.type)
+            feattypes = f0.type + f1.type
             if 'Cylinder' in f0.type and 'Cylinder' in f1.type or 'Cone' in f0.type or 'Cone' in f1.type:
                 if not 'Plane' in feattypes:                   
                     g.header = 'Center Line to Center Line'
