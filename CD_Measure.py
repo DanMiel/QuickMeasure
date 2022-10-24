@@ -24,7 +24,7 @@
 This can be used to see information about part features or to measure between features.
 Select one feature to view information or two features to see distance between them.
 The distance also show the x ,y ,z between them.
-Version.01 1
+Version.04
 """
 
 
@@ -114,11 +114,10 @@ class measureClass:
         numoffeats = 0
         for obj in selections: # Find number of selected surfaces
             numoffeats = numoffeats + len(obj.SubElementNames)
-        if selectionslen == 2 and numoffeats == 1:
+        if len(selections[0].SubElementNames) == 0:
             g.msg = 'Cannot measure feature to body'
         elif numoffeats > 2: # More than 2 features selected
             self.check2plus(selections, selectionslen)
-        
         else:
             #At least 1 feature is selected so fill feature f0 with infomation
             f0.bodyname = selections[0].Object.Label
@@ -133,7 +132,6 @@ class measureClass:
                 ''' If 1 feature is selected then measure feature.'''
                 if 'Vertex' in f0.fname:
                     g.msg = 'x = {}\ny = {}\nz = {}'.format(f0.x, f0.y, f0.z)
-
                 if 'Face' in f0.fname:
                     if 'Sphere' in f0.type:
                         g.msg = ' Sphere Radius = {}\nCenter\nx = {}\ny = {}\nz = {}'.format(f0.radius, f0.x ,f0.y ,f0.z)
@@ -164,10 +162,22 @@ class measureClass:
                     if 'Circle' in f0.type: 
                         circ = self.convertLen(f0.length)
                         g.msg = f'Radius = {f0.radius}\nDia = {f0.dia}\nEdge Length = {circ}\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
-                    if 'Spline' in f0.type:
-                        g.msg = 'Spline\nLength = ' + self.convertLen(f0.length)
-                    if 'Ellipse' in f0.type:
-                        g.msg = 'This is an Ellipse\nLength = ' + self.convertLen(f0.length)
+                    if 'Spline' in f0.type or 'Ellipse' in f0.type:
+                        shape = FreeCADGui.Selection.getSelectionEx()[0].Object.Shape
+                        faces = shape.ancestorsOfType(f0.entity, Part.Face)
+                        radii = []
+                        for face in faces:
+                            surf = face.Surface
+                            if hasattr(surf, "Radius"):
+                                radii.append(surf.Radius)
+                        lmsg = 'Connecting radii'
+                        for num in range(len(radii)):
+                            lmsg = lmsg + f'\nRad {num} = {self.convertLen(radii[num])}  dia = {self.convertLen(radii[num]*2)}'
+                        lmsg = lmsg +'\n'
+                        if 'Ellipse' in f0.type:
+                            g.msg = 'Ellipse\n' + lmsg
+                        else:
+                            g.msg = 'Spine\n' + lmsg
                 if g.msg == '':
                     g.header = '\nI cannot measure that feature'
                 else:
@@ -240,11 +250,7 @@ class measureClass:
                 g.msg = f'Distance = {dist}'
                 g.header = 'CenterLine to Vertex'
             if 'Plane' in feattypes:
-                p2vDist = ''
-                if "Plane" in f0.type:
-                    p2vDist = self.getvertexToPlane(f0.entity, f1.xyz)
-                else:
-                    p2vDist = self.getvertexToPlane(f1.entity, f0.xyz)
+                p2vDist = self.getvertexToPlane()
                 g.header = 'Plane to vertex'
                 g.msg = 'Distance = ' + self.convertLen(p2vDist)
 
@@ -294,11 +300,7 @@ class measureClass:
                 g.header = 'Mid Line to Face Center'
                 g.msg = self.getMsgBetween()
             if "Plane" in feattypes and 'Circle' in feattypes:
-                p2vDist = ''
-                if 'Plane' in f0.type:
-                    p2vDist = self.getvertexToPlane(f0.entity, f1.xyz)
-                else:
-                    p2vDist = self.getvertexToPlane(f1.entity, f0.xyz)
+                p2vDist = self.getvertexToPlane()
                 g.header = 'Center of Circle Edge to Plane'
                 g.msg = 'Distance = ' + self.convertLen(p2vDist)
             if 'Line' in feattypes and 'Cylinder' in feattypes or 'Cone' in feattypes:
@@ -375,29 +377,20 @@ class measureClass:
                 g.header = 'Sphere center to round face center'
                 g.msg = self.getMsgBetween()
             if "Plane" in feattypes and 'Sphere' in feattypes:
-                p2vDist = ''
-                if 'Plane' in f0.type:
-                    p2vDist = self.getvertexToPlane(f0.entity, f1.xyz)
-                else:
-                    p2vDist = self.getvertexToPlane(f1.entity, f0.xyz)
+                p2vDist = self.getvertexToPlane()
                 g.header = 'Center of Sphere to Plane'
                 g.msg = 'Distance = ' + self.convertLen(p2vDist)
-            area = self.convertArea(f0.area + f1.area)
-            g.msg = g.msg + '\nTotal Area = {}'.format(area)
             if 'Plane' in feattypes and 'Cylinder' in feattypes or 'Plane' in feattypes and 'Cone' in feattypes:
                 p2vDist = ''
-                if "Plane" in f0.type:
-                    if 'Cylinder' in f0.type and f0.point1 == 0 or 'Cylinder' in f1.type and f1.point1 == 0:
-                        g.msg = 'Cylinder ends in a spline. Try edge to plane'
-                    else:
-                        ang = math.degrees(f0.vector.getAngle(f1.vector))                
-                        comang = abs(90-ang)
-                        print(round(comang,5))
-                        diststr = self.findPlaneToLineDistance()
-                        if round(comang,5) == 0:
-                            g.msg = f'Centerline and plane is parallel\nDist = {diststr}'
-                        else:
-                            g.msg = 'Centerline and plane are not parallel'
+                ang = math.degrees(f0.vector.getAngle(f1.vector))
+                comang = abs(90-ang)
+                diststr = self.findPlaneToLineDistance()
+                if round(comang,10) == 0:
+                    g.msg = f'Centerline and plane is parallel\nDist = {diststr}'
+                else:
+                    g.msg = f'Centerline and plane are not parallel\nAngle = {round(ang, 10)}\nDistance = {diststr}'
+            area = self.convertArea(f0.area + f1.area)
+            g.msg = g.msg + '\nTotal Area = {}'.format(area)
  
     def check2plus(self, selections, selectionslen):
         # check when selections are 3 or more
@@ -442,18 +435,19 @@ class measureClass:
 
 
  
-    def getvertexToPlane(self, planefeat, measureFromVector):
-        # measure from vextor is xyz vector,Sphere etc. 
-        normAt = planefeat.normalAt(0, 0) # normal to plane vector
-        planeloc = planefeat.Vertexes[0].Point #Location of plane
+    def getvertexToPlane(self):
+        # This sub is from plne to a point. Any xyz.
+        if 'Plane' in f0.type:
+            distance = f1.xyz.distanceToPlane(f0.entity.Vertexes[0].Point, f0.vector)
+        else:
+            distance = f0.xyz.distanceToPlane(f1.entity.Vertexes[0].Point, f1.vector)
+        return(distance)
         #plane = Part.Plane(planeloc, normAt) #This line and next is to show plane while testing
         #Part.show(plane.toShape(),"Plane")
-        distance = measureFromVector.distanceToPlane(planeloc, normAt)
-        return(distance)
 
     def findPlaneToLineDistance(self):
         dist = 0
-        if 'Line' in f0.type:
+        if 'Plane' in f1.type:
             dist = f0.xyz.distanceToPlane(f1.xyz, f1.vector)
         else:
             dist = f1.xyz.distanceToPlane(f0.xyz, f0.vector)                    
