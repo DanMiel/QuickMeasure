@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
+
+  <name>Quick Meausre</name>
+
+  <description>Selecting a feature in the graphics window shows the details of that feature in a dialog text box so the information can be copy/pasted, selecting a second feature will show the distance between the features and if applicable the difference in the x, y and z axis between them.</description>
+
+  <version>2022.10.28</version>
+
+  <date>2022-10-28</date>
+
+  <url branch="main" type="repository">https://github.com/DanMiel/QuickMeasure</url>
+
+  <url type="readme">https://github.com/DanMiel/QuickMeasure/main/README.md</url>
+
+  <icon>https://github.com/DanMiel/QuickMeasure/Icons/QuickMeasure.svg</icon>
+
+  <content>
+    <workbench>
+      <classname>QuickMeasure</classname>
+      <subdirectory>./</subdirectory>
+    </workbench>
+  </content>
+
+</package>
