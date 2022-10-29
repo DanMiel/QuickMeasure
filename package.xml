@@ -3,7 +3,7 @@
 
   <name>Quick Measure</name>
 
-  <description>Selecting a feature in the graphics window shows the details of that feature in a dialog text box so the information can be copy/pasted, selecting a second feature will show the distance between the features and if applicable the difference in the x, y and z axis between them.</description>
+  <description>Measures selected features.</description>
 
   <version>2022.10.28</version>
 
