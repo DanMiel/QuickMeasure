@@ -35,7 +35,6 @@ from PySide import QtGui, QtCore
 from PySide.QtGui import *
 import math
 import numpy
-#import DraftGeomUtils
 import Part
 import Draft
 
@@ -125,9 +124,16 @@ class measureClass:
             f0.entity = selections[0].Object.getSubObject(f0.fname)
             f0.shape = selections[0].Object.Shape
             f0.object = selections[0].Object
+            if "Origin" in f0.fname:
+                msg = '''Origin cannot be used for measurements.
+Instead: Create a vertex at xyz0 using the
+Origin button and use that for measurements.'''
+                form1.txtboxReport.setText(msg)
+                return()
             if f0.entity.ShapeType == 'Vertex':self.getvertex(f0)
             if f0.entity.ShapeType == "Face":self.getface(f0)
             if f0.entity.ShapeType == "Edge":self.getedge(f0)
+            
             if selectionslen == 1 and featsInf0 == 1:
                 ''' If 1 feature is selected then measure feature.'''
                 if 'Vertex' in f0.fname:
@@ -151,7 +157,7 @@ class measureClass:
                             if f0.radius2 != 0:
                                 g.msg = g.msg + f'Bore\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}\nDia 1 = {f0.dia}\Dia 2 = {f0.dia2}'
                     if 'Toroid' in f0.type:
-                        g.msg = 'radius = ' + f0.radius
+                        g.msg = f0.radius
                     ''' Area added for all surfaces. '''
                     area = self.convertArea(f0.area)
                     g.msg = g.msg + '\nArea = {}\nFace Info'.format(area)
@@ -200,6 +206,12 @@ class measureClass:
                     f1.entity = selections[1].Object.getSubObject(f1.fname)
                     f1.object = selections[1].Object
                 # Get information for second feature
+                if "Origin" in f1.fname:
+                    msg = '''Origin cannot be used for measurements.
+Instead: Create a vertex at xyz0 using the
+Origin button and use that for measurements.'''
+                    form1.txtboxReport.setText(msg)
+                    return()
                 feattypes = f0.type + f1.type
                 if not 'Toroid' in feattypes: # Toroid cannot be measured to.
 
@@ -540,7 +552,13 @@ class measureClass:
             ci.xyz = ci.entity.Surface.Center
             self.getvector(ci.entity.Surface.Center, ci)
         if 'Toroid' in ci.type:
-            ci.radius = self.convertLen(ci.entity.Edges[0].Curve.Radius)
+            radius1 = self.convertLen(ci.entity.Edges[0].Curve.Radius)
+            radius2 = self.convertLen(ci.entity.Edges[1].Curve.Radius)
+            lmsg = f'Edge radii\nEdge0 = {radius1}\nEdge1 = {radius2}'
+            if len(ci.entity.Edges)>2:
+                radius3 = self.convertLen(ci.entity.Edges[2].Curve.Radius)
+                lmsg = lmsg + f'\nEdge2 = {radius3}'
+            ci.radius = lmsg
         return()
 
     def getedge(self, ci): #ci = class info
@@ -556,8 +574,6 @@ class measureClass:
         if 'Circle' in ci.type:
             ci.radius = self.convertLen(edge.Curve.Radius)
             ci.dia = self.convertLen(2 * edge.Curve.Radius)
-
-
             ci.xyz = edge.Curve.Center
             self.getvector(ci.xyz, ci)
         return()
@@ -601,6 +617,37 @@ class measureClass:
 
 modmeasure = measureClass()
 
+class createPoints():
+
+    def ToggleOrigin(self):
+        ShowOrg = self.deletepoints(self, 'QM_XYZ0')
+        if ShowOrg:
+            self.createpoint(self, 'QM_XYZ0', FreeCAD.Vector(0,0,0))
+
+    def midLine(self):
+        sels = FreeCADGui.Selection.getSelectionEx('', 0)
+        if len(sels) == 0 :
+            return()
+        featname = sels[0].SubElementNames[0]
+        if 'Edge' in featname:
+          entity = sels[0].Object.getSubObject(featname)
+          if "Line" in str(entity.Curve):
+              self.createpoint(self, 'QM_Mid',entity.CenterOfMass)
+
+    def deletepoints(self, pname):
+        found = True
+        for obj in FreeCAD.ActiveDocument.Objects:
+            if pname in obj.Label:
+                FreeCAD.ActiveDocument.removeObject(obj.Name)
+                found = False
+        return(found)
+
+    def createpoint(self, pname, vector):
+        FreeCADGui.Selection.clearSelection()
+        point = Part.Vertex(vector)
+        Point = Part.show(point, pname)
+        Point.ViewObject.PointSize = 10
+        Point.ViewObject.PointColor = (55.0,0.0,0.0)
 
 class formMain(QtGui.QMainWindow):
 
@@ -609,27 +656,53 @@ class formMain(QtGui.QMainWindow):
         super(formMain, self).__init__()
         self.setWindowTitle('Measure')
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-        self.setGeometry(300, 150, 300, 200)
+        self.setGeometry(280, 150, 300, 200)
         self.setStyleSheet("font:10pt arial MS")
 
         self.txtboxReport = QtGui.QTextEdit(self)
         self.txtboxReport.setGeometry(5, 50, 650, 90) # xy, wh
 
-        self.btnOpenViewer = QtGui.QPushButton(self)
-        self.btnOpenViewer.move(10, 5)
-        self.btnOpenViewer.setFixedWidth(100)
-        self.btnOpenViewer.setFixedHeight(28)
-        self.btnOpenViewer.setToolTip("Clear")
-        self.btnOpenViewer.setText("Clear")
-        self.btnOpenViewer.clicked.connect(lambda:self.ClearAll())
+        self.btnclearAll = QtGui.QPushButton(self)
+        self.btnclearAll.move(10, 4)
+        self.btnclearAll.setFixedWidth(60)
+        self.btnclearAll.setFixedHeight(21)
+        self.btnclearAll.setToolTip("Clear all")
+        self.btnclearAll.setText("Clear")
+        self.btnclearAll.clicked.connect(lambda:self.ClearAll())
 
         self.btnCloseForm = QtGui.QPushButton(self)
-        self.btnCloseForm.move(120, 5)
-        self.btnCloseForm.setFixedWidth(100)
-        self.btnCloseForm.setFixedHeight(28)
+        self.btnCloseForm.move(210, 4)
+        self.btnCloseForm.setFixedWidth(60)
+        self.btnCloseForm.setFixedHeight(21)
         self.btnCloseForm.setToolTip("Close this form.")
         self.btnCloseForm.setText("Close")
         self.btnCloseForm.clicked.connect(lambda:self.closeme())
+
+        self.btnToggleOrgin = QtGui.QPushButton(self)
+        self.btnToggleOrgin.move(10, 25)
+        self.btnToggleOrgin.setFixedWidth(60)
+        self.btnToggleOrgin.setFixedHeight(22)
+        self.btnToggleOrgin.setToolTip("Toggles an Origin point, on and off,\nwhich can be used for measurements.")
+        self.btnToggleOrgin.setText("Origin")
+        self.btnToggleOrgin.clicked.connect(lambda:createPoints.ToggleOrigin(createPoints))
+
+        self.btnMidLine = QtGui.QPushButton(self)
+        self.btnMidLine.move(80, 25)
+        self.btnMidLine.setFixedWidth(60)
+        self.btnMidLine.setFixedHeight(22)
+        self.btnMidLine.setToolTip("Creates a point at the middle\nof a straight line which can\nbe used for measurements.")
+        self.btnMidLine.setText("Mid Line")
+        self.btnMidLine.clicked.connect(lambda:createPoints.midLine(createPoints))
+
+        self.btnDeleteMid = QtGui.QPushButton(self)
+        self.btnDeleteMid.move(150, 25)
+        self.btnDeleteMid.setFixedWidth(80)
+        self.btnDeleteMid.setFixedHeight(22)
+        self.btnDeleteMid.setToolTip("Deletes all points added to the middle of lines.")
+        self.btnDeleteMid.setText("Del Mid Lines")
+        self.btnDeleteMid.clicked.connect(lambda:createPoints.deletepoints(createPoints, 'QM_Mid'))
+
+
 
     def ClearAll(self):
         form1.txtboxReport.setText('')
@@ -640,7 +713,7 @@ class formMain(QtGui.QMainWindow):
         # resize table
         formx = self.width()
         formy = self.height()
-        self.txtboxReport.resize(formx - 20, formy - 60)
+        self.txtboxReport.resize(formx - 20, formy - 20)
 
     def showme(self, msg):
         self.txtboxReport.setText(msg)
@@ -655,6 +728,7 @@ class formMain(QtGui.QMainWindow):
     def closeEvent(self, event):
         selObv.SelObserverOFF()
         print('Shut down in closeEvent')
+
 form1 = formMain('form1')
 
 class SelObserver:
