@@ -125,9 +125,9 @@ class measureClass:
             f0.shape = selections[0].Object.Shape
             f0.object = selections[0].Object
             if "Origin" in f0.fname:
-                msg = '''Origin cannot be used for measurements.
-Instead: Create a vertex at xyz0 using the
-Origin button and use that for measurements.'''
+                msg = 'Origin cannot be used for measurements.\n'
+                msg = msg + 'Instead: Create a vertex at xyz0 using the\n'
+                msg = msg + 'Origin button and use that for measurements.'
                 form1.txtboxReport.setText(msg)
                 return()
             if f0.entity.ShapeType == 'Vertex':self.getvertex(f0)
@@ -206,10 +206,10 @@ Origin button and use that for measurements.'''
                     f1.entity = selections[1].Object.getSubObject(f1.fname)
                     f1.object = selections[1].Object
                 # Get information for second feature
-                if "Origin" in f1.fname:
-                    msg = '''Origin cannot be used for measurements.
-Instead: Create a vertex at xyz0 using the
-Origin button and use that for measurements.'''
+                if "Origin" in f0.fname:
+                    msg = 'Origin cannot be used for measurements.\n'
+                    msg = msg + 'Instead: Create a vertex at xyz0 using the\n'
+                    msg = msg + 'Origin button and use that for measurements.'
                     form1.txtboxReport.setText(msg)
                     return()
                 feattypes = f0.type + f1.type

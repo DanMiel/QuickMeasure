@@ -48,7 +48,7 @@ class QuickMeasure (Workbench):
            'Quick Measure',
            MeasureCommands
            )
-
+           
     def Activated(self):
         pass
 
