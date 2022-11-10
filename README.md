@@ -25,3 +25,5 @@ QuickMeasure addon is available via the FreeCAD Addon Manager.
 Dan Miel ([@DanMiel](https://github.com/DanMiel))
 
 ## License
+
+GPLv3 ([LICENSE](LICENSE))
