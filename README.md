@@ -3,7 +3,7 @@
 Quick Measure is a FreeCAD tool designed to measure features quickly without needing to add dimensions to the graphic’s window.
 
 ## Screenshots
-
+![QMeasure](https://user-images.githubusercontent.com/42722171/201226021-079560d0-d55b-42f7-b4e5-49e8dd876f62.jpg)
 ## Installation
 
 QuickMeasure addon is available via the FreeCAD Addon Manager.
