@@ -142,7 +142,7 @@ class measureClass:
                     if 'Sphere' in f0.type:
                         g.msg = ' Sphere Radius = {}\nCenter\nx = {}\ny = {}\nz = {}'.format(f0.radius, f0.x ,f0.y ,f0.z)
                     if 'Cylinder' in f0.type:
-                        g.msg =f'Cyinder\nDiameter = {f0.dia}\nRadius = {f0.radius}'
+                        g.msg =f'Cylinder\nDiameter = {f0.dia}\nRadius = {f0.radius}'
                         if len(str(f0.cylinderlength)) != 0:
                             g.msg = g.msg + '\nLength = ' + str(f0.cylinderlength)
                     if 'Cone' in f0.type:
