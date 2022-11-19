@@ -167,7 +167,7 @@ class measureClass:
                         g.msg = 'Length = {}\nMid point of line\nx = {}\ny = {}\nz = {}'.format(length, f0.x, f0.y, f0.z)
                     if 'Circle' in f0.type: 
                         circ = self.convertLen(f0.length)
-                        g.msg = f'Radius = {f0.radius}\nDia = {f0.dia}\nEdge Length = {circ}\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
+                        g.msg = f'Radius = {f0.radius}\nDia = {f0.dia}\nEdge Length = {circ}\nCenter of Arc is:\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
                     if 'Spline' in f0.type or 'Ellipse' in f0.type:
                         shape = FreeCADGui.Selection.getSelectionEx()[0].Object.Shape
                         faces = shape.ancestorsOfType(f0.entity, Part.Face)
@@ -654,7 +654,7 @@ class formMain(QtGui.QMainWindow):
     def __init__(self, name):
         self.name = name
         super(formMain, self).__init__()
-        self.setWindowTitle('Measure')
+        self.setWindowTitle('Quick Measure')
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.setGeometry(280, 150, 300, 200)
         self.setStyleSheet("font:10pt arial MS")
