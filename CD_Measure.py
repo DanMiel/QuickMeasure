@@ -153,7 +153,7 @@ class measureClass:
                         g.msg = 'Plane'
                         if 'Round' in f0.type:
                             if f0.radius2 == 0:
-                                g.msg = g.msg +'Round\nx = {}\ny = {}\nz = {}'.format(f0.x, f0.y, f0.z)
+                                g.msg = g.msg +'Round\nCenter of round plane is at: \nx = {}\ny = {}\nz = {}'.format(f0.x, f0.y, f0.z)
                             if f0.radius2 != 0:
                                 g.msg = g.msg + f'Bore\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}\nDia 1 = {f0.dia}\Dia 2 = {f0.dia2}'
                     if 'Toroid' in f0.type:
@@ -450,6 +450,8 @@ class measureClass:
     def getvertexToPlane(self):
         # This sub is from plne to a point. Any xyz.
         if 'Plane' in f0.type:
+            print(f0.entity.Vertexes[0].Point)
+            print(f0.vector)
             distance = f1.xyz.distanceToPlane(f0.entity.Vertexes[0].Point, f0.vector)
         else:
             distance = f0.xyz.distanceToPlane(f1.entity.Vertexes[0].Point, f1.vector)
@@ -510,7 +512,7 @@ class measureClass:
                 ci.xyz = face.CenterOfMass
                 self.getvector(ci.xyz,ci)
                 ci.type = 'RoundPlane'
-        
+                ci.vector = ci.entity.Surface.Axis
         ci.normal = face.normalAt(0, 0)
         ci.area = face.Area
         if "Plane" in ci.type and ci.xyz == 'n':
@@ -670,6 +672,14 @@ class formMain(QtGui.QMainWindow):
         self.btnclearAll.setText("Clear")
         self.btnclearAll.clicked.connect(lambda:self.ClearAll())
 
+        self.btncopytoClipB = QtGui.QPushButton(self)
+        self.btncopytoClipB.move(80, 4)
+        self.btncopytoClipB.setFixedWidth(60)
+        self.btncopytoClipB.setFixedHeight(24)
+        self.btncopytoClipB.setToolTip("Copy text to clipboard")
+        self.btncopytoClipB.setText("Copy")
+        self.btncopytoClipB.clicked.connect(lambda:self.CopyToClipboard())
+
         self.btnCloseForm = QtGui.QPushButton(self)
         self.btnCloseForm.move(210, 4)
         self.btnCloseForm.setFixedWidth(60)
@@ -701,6 +711,13 @@ class formMain(QtGui.QMainWindow):
         self.btnDeleteMid.setToolTip("Deletes all points added to the middle of lines.")
         self.btnDeleteMid.setText("Del Mid Lines")
         self.btnDeleteMid.clicked.connect(lambda:createPoints.deletepoints(createPoints, 'QM_Mid'))
+
+
+    def CopyToClipboard(self):
+        memo = QtGui.QApplication.clipboard()
+        txt = self.txtboxReport.toPlainText()
+        memo.setText(u"{}".format(txt), mode = memo.Clipboard) # store in
+        #memo.clear(mode=memo.Clipboard ) # clear clipBoard
 
 
 
