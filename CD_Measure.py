@@ -106,7 +106,7 @@ class measureClass:
             totarea = self.convertArea(features0.Area)
             totVolume = self.convertVolume(features0.Volume)
             g.header = '{} Body'.format(name)
-            g.msg = 'Area = {}\nVolume = {}'.format(name, totarea, totVolume)
+            g.msg = f'Area = {totarea}\nVolume = {totVolume}'
             form1.txtboxReport.setText(g.msg + '\n' + g.header)
             return()
 
