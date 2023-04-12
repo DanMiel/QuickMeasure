@@ -671,6 +671,7 @@ class formMain(QtGui.QMainWindow):
         self.btnclearAll.setToolTip("Clear all")
         self.btnclearAll.setText("Clear")
         self.btnclearAll.clicked.connect(lambda:self.ClearAll())
+        self.btnclearAll.setStyleSheet("padding:2px")
 
         self.btncopytoClipB = QtGui.QPushButton(self)
         self.btncopytoClipB.move(80, 4)
@@ -679,6 +680,7 @@ class formMain(QtGui.QMainWindow):
         self.btncopytoClipB.setToolTip("Copy text to clipboard")
         self.btncopytoClipB.setText("Copy")
         self.btncopytoClipB.clicked.connect(lambda:self.CopyToClipboard())
+        self.btncopytoClipB.setStyleSheet("padding:2px")
 
         self.btnCloseForm = QtGui.QPushButton(self)
         self.btnCloseForm.move(210, 4)
@@ -687,6 +689,7 @@ class formMain(QtGui.QMainWindow):
         self.btnCloseForm.setToolTip("Close this form.")
         self.btnCloseForm.setText("Close")
         self.btnCloseForm.clicked.connect(lambda:self.closeme())
+        self.btnCloseForm.setStyleSheet("padding:2px")
 
         self.btnToggleOrgin = QtGui.QPushButton(self)
         self.btnToggleOrgin.move(10, 28)
@@ -695,23 +698,25 @@ class formMain(QtGui.QMainWindow):
         self.btnToggleOrgin.setToolTip("Toggles an Origin point, on and off,\nwhich can be used for measurements.")
         self.btnToggleOrgin.setText("Origin")
         self.btnToggleOrgin.clicked.connect(lambda:createPoints.ToggleOrigin(createPoints))
+        self.btnToggleOrgin.setStyleSheet("padding:2px")
 
         self.btnMidLine = QtGui.QPushButton(self)
         self.btnMidLine.move(80, 28)
-        self.btnMidLine.setFixedWidth(60)
+        self.btnMidLine.setFixedWidth(65)
         self.btnMidLine.setFixedHeight(24)
         self.btnMidLine.setToolTip("Creates a point at the middle\nof a straight line which can\nbe used for measurements.")
         self.btnMidLine.setText("Mid Line")
         self.btnMidLine.clicked.connect(lambda:createPoints.midLine(createPoints))
+        self.btnMidLine.setStyleSheet("padding:2px")
 
         self.btnDeleteMid = QtGui.QPushButton(self)
         self.btnDeleteMid.move(150, 28)
-        self.btnDeleteMid.setFixedWidth(85)
+        self.btnDeleteMid.setFixedWidth(90)
         self.btnDeleteMid.setFixedHeight(24)
         self.btnDeleteMid.setToolTip("Deletes all points added to the middle of lines.")
         self.btnDeleteMid.setText("Del Mid Lines")
         self.btnDeleteMid.clicked.connect(lambda:createPoints.deletepoints(createPoints, 'QM_Mid'))
-
+        self.btnDeleteMid.setStyleSheet("padding:2px")
 
     def CopyToClipboard(self):
         memo = QtGui.QApplication.clipboard()
