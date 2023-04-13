@@ -670,7 +670,7 @@ class formMain(QtGui.QMainWindow):
         self.setStyleSheet("font:10pt arial MS")
 
         self.txtboxReport = QtGui.QTextEdit(self)
-        self.txtboxReport.setGeometry(5, 54, 650, 90) # xy, wh
+        self.txtboxReport.setGeometry(5, 56, 650, 90) # xy, wh
 
         self.btnclearAll = QtGui.QPushButton(self)
         self.btnclearAll.move(10, 4)
@@ -749,7 +749,7 @@ You can then use the points for measurements.
         # resize table
         formx = self.width()
         formy = self.height()
-        self.txtboxReport.resize(formx - 20, formy - 20)
+        self.txtboxReport.resize(formx - 14, formy - 60)
 
     def showme(self, msg):
         self.txtboxReport.setText(msg)
