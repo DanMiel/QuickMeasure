@@ -623,6 +623,7 @@ class createPoints():
 
     def ToggleOrigin(self):
         ShowOrg = self.deletepoints(self, 'QM_XYZ0')
+        #Show the origion of the part.
         if ShowOrg:
             self.createpoint(self, 'QM_XYZ0', FreeCAD.Vector(0,0,0))
 
@@ -631,12 +632,19 @@ class createPoints():
         if len(sels) == 0 :
             return()
         featname = sels[0].SubElementNames[0]
+        print(featname)
         if 'Edge' in featname:
-          entity = sels[0].Object.getSubObject(featname)
-          if "Line" in str(entity.Curve):
-              self.createpoint(self, 'QM_Mid',entity.CenterOfMass)
+            entity = sels[0].Object.getSubObject(featname)
+            print(entity.Curve)
+            if "Line" in str(entity.Curve):
+                self.createpoint(self, 'QM_Mid',entity.CenterOfMass)
+
+            if 'Radius' in str(entity.Curve):
+                print(entity.Curve.Center)
+                self.createpoint(self, 'QM_Circle Center',entity.Curve.Center)
 
     def deletepoints(self, pname):
+        print(pname)
         found = True
         for obj in FreeCAD.ActiveDocument.Objects:
             if pname in obj.Label:
@@ -674,7 +682,7 @@ class formMain(QtGui.QMainWindow):
         self.btnclearAll.setStyleSheet("padding:2px")
 
         self.btncopytoClipB = QtGui.QPushButton(self)
-        self.btncopytoClipB.move(80, 4)
+        self.btncopytoClipB.move(70, 4)
         self.btncopytoClipB.setFixedWidth(60)
         self.btncopytoClipB.setFixedHeight(24)
         self.btncopytoClipB.setToolTip("Copy text to clipboard")
@@ -683,7 +691,7 @@ class formMain(QtGui.QMainWindow):
         self.btncopytoClipB.setStyleSheet("padding:2px")
 
         self.btnCloseForm = QtGui.QPushButton(self)
-        self.btnCloseForm.move(210, 4)
+        self.btnCloseForm.move(200, 4)
         self.btnCloseForm.setFixedWidth(60)
         self.btnCloseForm.setFixedHeight(24)
         self.btnCloseForm.setToolTip("Close this form.")
@@ -701,21 +709,27 @@ class formMain(QtGui.QMainWindow):
         self.btnToggleOrgin.setStyleSheet("padding:2px")
 
         self.btnMidLine = QtGui.QPushButton(self)
-        self.btnMidLine.move(80, 28)
-        self.btnMidLine.setFixedWidth(65)
+        self.btnMidLine.move(70, 28)
+        self.btnMidLine.setFixedWidth(130)
         self.btnMidLine.setFixedHeight(24)
-        self.btnMidLine.setToolTip("Creates a point at the middle\nof a straight line which can\nbe used for measurements.")
-        self.btnMidLine.setText("Mid Line")
+        binfo = '''Select a line, edge or arc then select this button.
+A point will be created at the mid point of a the edge or center of the arc.
+You can then use the points for measurements.
+'''
+        self.btnMidLine.setToolTip(binfo)
+        #self.btnMidLine.setToolTip("Creates a point at the middle of a straight lineor arc,\nwhich can\nbe used for measurements.")
+        self.btnMidLine.setText("Mid Line, Arc Center")
         self.btnMidLine.clicked.connect(lambda:createPoints.midLine(createPoints))
         self.btnMidLine.setStyleSheet("padding:2px")
 
         self.btnDeleteMid = QtGui.QPushButton(self)
-        self.btnDeleteMid.move(150, 28)
-        self.btnDeleteMid.setFixedWidth(90)
+        self.btnDeleteMid.move(200, 28)
+        self.btnDeleteMid.setFixedWidth(95)
         self.btnDeleteMid.setFixedHeight(24)
-        self.btnDeleteMid.setToolTip("Deletes all points added to the middle of lines.")
-        self.btnDeleteMid.setText("Del Mid Lines")
-        self.btnDeleteMid.clicked.connect(lambda:createPoints.deletepoints(createPoints, 'QM_Mid'))
+        self.btnDeleteMid.setToolTip("Deletes all points added to the middle of lines and center of circles.")
+        self.btnDeleteMid.setText("Del Mid Points")
+        #deletes all points with QM_ in the name
+        self.btnDeleteMid.clicked.connect(lambda:createPoints.deletepoints(createPoints, 'QM_'))
         self.btnDeleteMid.setStyleSheet("padding:2px")
 
     def CopyToClipboard(self):
