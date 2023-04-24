@@ -31,8 +31,11 @@ Version.04
 import os
 import FreeCAD
 import FreeCADGui
-from PySide import QtGui, QtCore
-from PySide.QtGui import *
+import PySide2
+from PySide2 import QtGui, QtCore, QtWidgets
+from PySide2.QtGui import *
+#from PySide import QtGui, QtCore
+#from PySide.QtGui import *
 import math
 import numpy
 import Part
@@ -98,6 +101,15 @@ class measureClass:
         f1.newinfo()
         g.header = ''
         g.msg = ''
+
+        #print(str(selectionslen),str(len(selections[0].SubElementNames)))
+
+        #if SubElementName is only pad
+        if featsInf0 != 0:        
+            str1 = selections[0].SubElementNames[0]
+            str2 = str1.split(".",1)[1]
+            if str2 == '': 
+                featsInf0 = 0
 
         if selectionslen == 1 and featsInf0 == 0:
             ''' If 1 selection but no features are selected then a is body selected.
@@ -336,7 +348,7 @@ class measureClass:
                 if comang == 0:
                     dist = 0                    
                     diststr = self.findPlaneToLineDistance()
-                    g.msg = 'Line is parallel to plane\nDistance = {diststr}'
+                    g.msg = f'Line is parallel to plane\nDistance = {diststr}'
                 else:
                     g.msg = f'Line is not parralllel to plane\nDegrees = {degstr}'
                 g.header = 'Degrees beetween plane and line'                
@@ -347,6 +359,7 @@ class measureClass:
         if 'Face' in f0.fname and 'Face' in f1.fname:
             if 'Plane' in f0.type and'Plane' in f1.type:
                 myangle = math.degrees( f0.normal.getAngle( f1.normal))
+                myangle = 180 - myangle #added 2023-04-24 for draft
                 anglestring = self.convertAngle(myangle)
                 g.header = f0.fname + ' and ' + f1.fname
                 if myangle == 90 or myangle == 270:
@@ -515,9 +528,18 @@ class measureClass:
                 ci.vector = ci.entity.Surface.Axis
         ci.normal = face.normalAt(0, 0)
         ci.area = face.Area
-        if "Plane" in ci.type and ci.xyz == 'n':
+
+        if "Plane" in ci.type:  # and ci.xyz == 'n':
             ci.xyz = ci.entity.CenterOfMass
             ci.vector = ci.entity.Surface.Axis
+
+        if 'BSplineSurface' in ci.type:# and ci.xyz == 'n':
+            ci.type = 'BPlane'
+            ci.xyz = ci.entity.CenterOfMass
+            #print('Im in BSplineSurface')
+            ci.vector = ci.entity.normalAt(0, 0)
+
+
         if 'Cylinder' in ci.type or 'Cone' in ci.type:
             ''' Find two centers in cylinders'''
             edgetypes2 = ''
@@ -631,20 +653,17 @@ class createPoints():
         sels = FreeCADGui.Selection.getSelectionEx('', 0)
         if len(sels) == 0 :
             return()
-        featname = sels[0].SubElementNames[0]
-        print(featname)
-        if 'Edge' in featname:
-            entity = sels[0].Object.getSubObject(featname)
-            print(entity.Curve)
-            if "Line" in str(entity.Curve):
-                self.createpoint(self, 'QM_Mid',entity.CenterOfMass)
 
-            if 'Radius' in str(entity.Curve):
-                print(entity.Curve.Center)
-                self.createpoint(self, 'QM_Circle Center',entity.Curve.Center)
+        for sel in sels:
+            for featname in sel.SubElementNames:
+                if 'Edge' in featname:
+                    entity = sel.Object.getSubObject(featname)
+                    if "Line" in str(entity.Curve):
+                        self.createpoint(self, 'QM_Mid',entity.CenterOfMass)
+                    if 'Radius' in str(entity.Curve):
+                        self.createpoint(self, 'QM_Circle Center',entity.Curve.Center)
 
     def deletepoints(self, pname):
-        print(pname)
         found = True
         for obj in FreeCAD.ActiveDocument.Objects:
             if pname in obj.Label:
@@ -659,85 +678,78 @@ class createPoints():
         Point.ViewObject.PointSize = 10
         Point.ViewObject.PointColor = (55.0,0.0,0.0)
 
-class formMain(QtGui.QMainWindow):
+class formMain(QtWidgets.QMainWindow):  # PySide2
 
     def __init__(self, name):
         self.name = name
         super(formMain, self).__init__()
         self.setWindowTitle('Quick Measure')
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-        self.setGeometry(280, 150, 300, 200)
         self.setStyleSheet("font:10pt arial MS")
+        self.txtboxReport = QtWidgets.QTextEdit(self)    # PySide2
+        self.btnclearAll = QtWidgets.QPushButton(self)   # PySide2
+#        self.btnclearAll.setIcon(QtGui.QIcon(self.path + "icon.svg"))   # icon in a button (svg, png, bmp....)
 
-        self.txtboxReport = QtGui.QTextEdit(self)
-        self.txtboxReport.setGeometry(5, 56, 650, 90) # xy, wh
-
-        self.btnclearAll = QtGui.QPushButton(self)
-        self.btnclearAll.move(10, 4)
-        self.btnclearAll.setFixedWidth(60)
-        self.btnclearAll.setFixedHeight(24)
         self.btnclearAll.setToolTip("Clear all")
         self.btnclearAll.setText("Clear")
         self.btnclearAll.clicked.connect(lambda:self.ClearAll())
-        self.btnclearAll.setStyleSheet("padding:2px")
-
-        self.btncopytoClipB = QtGui.QPushButton(self)
-        self.btncopytoClipB.move(70, 4)
-        self.btncopytoClipB.setFixedWidth(60)
-        self.btncopytoClipB.setFixedHeight(24)
+        
+        self.btncopytoClipB = QtWidgets.QPushButton(self)   # PySide2
         self.btncopytoClipB.setToolTip("Copy text to clipboard")
         self.btncopytoClipB.setText("Copy")
         self.btncopytoClipB.clicked.connect(lambda:self.CopyToClipboard())
-        self.btncopytoClipB.setStyleSheet("padding:2px")
-
-        self.btnCloseForm = QtGui.QPushButton(self)
-        self.btnCloseForm.move(200, 4)
-        self.btnCloseForm.setFixedWidth(60)
-        self.btnCloseForm.setFixedHeight(24)
+        
+        self.btnCloseForm = QtWidgets.QPushButton(self)   # PySide2
         self.btnCloseForm.setToolTip("Close this form.")
         self.btnCloseForm.setText("Close")
         self.btnCloseForm.clicked.connect(lambda:self.closeme())
-        self.btnCloseForm.setStyleSheet("padding:2px")
-
-        self.btnToggleOrgin = QtGui.QPushButton(self)
-        self.btnToggleOrgin.move(10, 28)
-        self.btnToggleOrgin.setFixedWidth(60)
-        self.btnToggleOrgin.setFixedHeight(24)
+        
+        self.btnToggleOrgin = QtWidgets.QPushButton(self)   # PySide2
         self.btnToggleOrgin.setToolTip("Toggles an Origin point, on and off,\nwhich can be used for measurements.")
         self.btnToggleOrgin.setText("Origin")
         self.btnToggleOrgin.clicked.connect(lambda:createPoints.ToggleOrigin(createPoints))
-        self.btnToggleOrgin.setStyleSheet("padding:2px")
-
-        self.btnMidLine = QtGui.QPushButton(self)
-        self.btnMidLine.move(70, 28)
-        self.btnMidLine.setFixedWidth(130)
-        self.btnMidLine.setFixedHeight(24)
+        
+        self.btnMidLine = QtWidgets.QPushButton(self)   # PySide2
         binfo = '''Select a line, edge or arc then select this button.
 A point will be created at the mid point of a the edge or center of the arc.
 You can then use the points for measurements.
 '''
         self.btnMidLine.setToolTip(binfo)
-        #self.btnMidLine.setToolTip("Creates a point at the middle of a straight lineor arc,\nwhich can\nbe used for measurements.")
         self.btnMidLine.setText("Mid Line, Arc Center")
         self.btnMidLine.clicked.connect(lambda:createPoints.midLine(createPoints))
-        self.btnMidLine.setStyleSheet("padding:2px")
-
-        self.btnDeleteMid = QtGui.QPushButton(self)
-        self.btnDeleteMid.move(200, 28)
-        self.btnDeleteMid.setFixedWidth(95)
-        self.btnDeleteMid.setFixedHeight(24)
+        
+        self.btnDeleteMid = QtWidgets.QPushButton(self)    # PySide2
         self.btnDeleteMid.setToolTip("Deletes all points added to the middle of lines and center of circles.")
         self.btnDeleteMid.setText("Del Mid Points")
         #deletes all points with QM_ in the name
         self.btnDeleteMid.clicked.connect(lambda:createPoints.deletepoints(createPoints, 'QM_'))
-        self.btnDeleteMid.setStyleSheet("padding:2px")
 
+#### Begin Layout ################################
+#https://koor.fr/Python/Tutoriel_PySide/pyside_layout_qgridlayout.wp
+
+        central_widget = QtWidgets.QWidget()      # PySide2
+        grid = QtWidgets.QGridLayout()            # PySide2
+        self.setCentralWidget(central_widget)      
+
+        grid.addWidget(self.btnclearAll, 0, 0)
+        grid.addWidget(self.btncopytoClipB, 0, 1)
+        grid.addWidget(self.btnCloseForm, 0, 2)
+
+        grid.addWidget(self.btnToggleOrgin, 1, 0)
+        grid.addWidget(self.btnMidLine, 1, 1)
+        grid.addWidget(self.btnDeleteMid, 1, 2)
+
+        grid.addWidget(self.txtboxReport, 2, 0, 1, 3)
+
+        central_widget.setLayout(grid)
+
+#### End Layout ###############################
+ 
     def CopyToClipboard(self):
-        memo = QtGui.QApplication.clipboard()
+        memo = QtWidgets.QApplication.clipboard()    # PySide2
         txt = self.txtboxReport.toPlainText()
         memo.setText(u"{}".format(txt), mode = memo.Clipboard) # store in
         #memo.clear(mode=memo.Clipboard ) # clear clipBoard
-
 
 
     def ClearAll(self):
@@ -828,7 +840,8 @@ class QuickMeasure:
 FreeCADGui.addCommand('QuickMeasureTool', QuickMeasure())
 #==============================================================================
 
-class mApp(QtGui.QWidget):
+class mApp(QtWidgets.QWidget):  # PySide2
+#class mApp(QtGui.QWidget):     # PySide
     """This message box was added to make this file a standalone file"""
     # for error messages
     def __init__(self, msg, msgtype ='ok'):
