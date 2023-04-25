@@ -105,11 +105,13 @@ class measureClass:
         #print(str(selectionslen),str(len(selections[0].SubElementNames)))
 
         #if SubElementName is only pad
-        if featsInf0 != 0:        
+        if featsInf0 != 0:
             str1 = selections[0].SubElementNames[0]
-            str2 = str1.split(".",1)[1]
-            if str2 == '': 
-                featsInf0 = 0
+            print(str1)
+            if '.' in str1:
+                str2 = str1.split(".",1)[1]
+                if str2 == '': 
+                    featsInf0 = 0
 
         if selectionslen == 1 and featsInf0 == 0:
             ''' If 1 selection but no features are selected then a is body selected.
