@@ -345,7 +345,7 @@ class measureClass:
 
             if 'Line' in feattypes and 'Plane' in feattypes:
                 ang = math.degrees(f0.vector.getAngle(f1.vector))                
-                comang = abs(90-ang)
+                comang = abs(90+ang) #changed from comang = abs(90 - ang) on 2023-04-24
                 degstr = self.convertAngle(comang)
                 if comang == 0:
                     dist = 0                    
