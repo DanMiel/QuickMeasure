@@ -57,6 +57,7 @@ class info:
     def newinfo(self):
         self.area = 0
         self.centerofmass = 0
+        self.coneangle = 0
         self.cylinderlength = ''
         self.bodyname = ''
         self.dia = 0
@@ -107,7 +108,6 @@ class measureClass:
         #if SubElementName is only pad
         if featsInf0 != 0:
             str1 = selections[0].SubElementNames[0]
-            print(str1)
             if '.' in str1:
                 str2 = str1.split(".",1)[1]
                 if str2 == '': 
@@ -162,7 +162,7 @@ class measureClass:
                     if 'Cone' in f0.type:
                         g.msg =f'Cone\nEnd1\nRadius = {f0.radius}\nDiameter = {f0.dia}\nEnd2\nRadius = {f0.radius2}\nDiameter = {f0.dia2}' 
                         if len(str(f0.cylinderlength)) != 0:
-                            g.msg = g.msg + '\nLength = ' + str(f0.cylinderlength)
+                            g.msg = g.msg + f'\nLength = {f0.cylinderlength}\nTaper = {f0.coneangle} per/side'
                     if 'Plane' in f0.type:
                         g.msg = 'Plane'
                         if 'Round' in f0.type:
@@ -241,6 +241,7 @@ class measureClass:
                         self.checkSurfaces()
         if g.msg == '':
             g.msg = 'Cannot calculate between selections'
+        
         form1.txtboxReport.setText(g.msg + '\n' + g.header)
             #end of program
 
@@ -345,7 +346,7 @@ class measureClass:
 
             if 'Line' in feattypes and 'Plane' in feattypes:
                 ang = math.degrees(f0.vector.getAngle(f1.vector))                
-                comang = abs(90+ang) #changed from comang = abs(90 - ang) on 2023-04-24
+                comang = abs(90 + ang) #changed from comang = abs(90 - ang) on 2023-04-24
                 degstr = self.convertAngle(comang)
                 if comang == 0:
                     dist = 0                    
@@ -415,7 +416,7 @@ class measureClass:
                 if round(comang,10) == 0:
                     g.msg = f'Centerline and plane is parallel\nDist = {diststr}'
                 else:
-                    g.msg = f'Centerline and plane are not parallel\nAngle = {round(ang, 10)}\nDistance = {diststr}'
+                    g.msg = f'Centerline and plane are not parallel\nAngle = {round(comang, 10)}\nDistance = {diststr}'
             area = self.convertArea(f0.area + f1.area)
             g.msg = g.msg + '\nTotal Area = {}'.format(area)
  
@@ -546,16 +547,21 @@ class measureClass:
             ''' Find two centers in cylinders'''
             edgetypes2 = ''
             ci.vector = ci.entity.Surface.Axis
+            radius1 = 0
+            radius2 = 0
             for e in face.Edges:
                 rstr = str(e.Curve)
                 if 'Radius' in rstr:
                     if ci.point1 == 0:
                         #Get first Radius
+                        radius1 = e.Curve.Radius
                         ci.point1 = e.Curve.Center
                         ci.radius = self.convertLen(e.Curve.Radius)[0]
                         ci.dia = self.convertLen(2 * e.Curve.Radius)
+                        
                     if ci.point1 != 0 and e.Curve.Center != ci.point1:
                         # Get second radius
+                        radius2 = e.Curve.Radius
                         ci.radius2 = self.convertLen(e.Curve.Radius)
                         ci.dia2 = self.convertLen(2 * e.Curve.Radius)
                         ci.point2 = e.Curve.Center
@@ -569,6 +575,13 @@ class measureClass:
             else:
                 dis = self.findpointsdistance(ci.point1, ci.point2)[3]
                 if dis != 0:
+                    #added for angle
+                    opposite = abs(radius1 - radius2)
+                    sine = math.sin(opposite/dis)
+                    radang = math.asin(sine)
+                    radang = math.atan2(opposite,dis)
+                    degangle = math.degrees(radang)
+                    ci.coneangle = self.convertAngle(degangle)
                     ci.cylinderlength = self.convertLen(dis)
             ci.radius = self.convertLen(ci.entity.Surface.Radius)
             ci.xyz = ci.entity.Surface.Center
@@ -591,12 +604,21 @@ class measureClass:
         edge = ci.entity
         ci.length = edge.Length
         ci.type = str(edge.Curve)
+        print(ci.type)
+        
         if 'Line' in ci.type:
             ci.xyz = edge.CenterOfMass
             self.getvector(edge.CenterOfMass, ci)
             ci.point1 = edge.Vertexes[0].Point
-            ci.point2 = edge.Vertexes[1].Point
+            ci.point2 = edge.Vertexes[1].Point            
             ci.vector = edge.Curve.Direction
+        if 'BezierCurve' in ci.type:            
+            ci.xyz = edge.CenterOfMass
+            self.getvector(edge.CenterOfMass, ci)
+            ci.point1 = edge.Vertexes[0].Point
+            ci.point2 = edge.Vertexes[1].Point
+            g.msg = 'This is a BezierCurve.\nI cannot measure it'
+            return
         if 'Circle' in ci.type:
             ci.radius = self.convertLen(edge.Curve.Radius)
             ci.dia = self.convertLen(2 * edge.Curve.Radius)
