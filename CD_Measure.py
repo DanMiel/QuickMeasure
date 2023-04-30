@@ -162,7 +162,7 @@ class measureClass:
                     if 'Cone' in f0.type:
                         g.msg =f'Cone\nEnd1\nRadius = {f0.radius}\nDiameter = {f0.dia}\nEnd2\nRadius = {f0.radius2}\nDiameter = {f0.dia2}' 
                         if len(str(f0.cylinderlength)) != 0:
-                            g.msg = g.msg + f'\nLength = {f0.cylinderlength}\nTaper = {f0.coneangle} per/side'
+                            g.msg = g.msg + f'\nLength = {f0.cylinderlength}\nDraft/Taper = {f0.coneangle} per/side'
                     if 'Plane' in f0.type:
                         g.msg = 'Plane'
                         if 'Round' in f0.type:
@@ -466,7 +466,7 @@ class measureClass:
     def getvertexToPlane(self):
         # This sub is from plne to a point. Any xyz.
         if 'Plane' in f0.type:
-            print(f0.entity.Vertexes[0].Point)
+            #(f0.entity.Vertexes[0].Point)
             print(f0.vector)
             distance = f1.xyz.distanceToPlane(f0.entity.Vertexes[0].Point, f0.vector)
         else:
@@ -553,10 +553,10 @@ class measureClass:
                 rstr = str(e.Curve)
                 if 'Radius' in rstr:
                     if ci.point1 == 0:
-                        #Get first Radius
+                        #Get first Radius of Cone
                         radius1 = e.Curve.Radius
                         ci.point1 = e.Curve.Center
-                        ci.radius = self.convertLen(e.Curve.Radius)[0]
+                        ci.radius = self.convertLen(e.Curve.Radius)
                         ci.dia = self.convertLen(2 * e.Curve.Radius)
                         
                     if ci.point1 != 0 and e.Curve.Center != ci.point1:
@@ -583,7 +583,7 @@ class measureClass:
                     degangle = math.degrees(radang)
                     ci.coneangle = self.convertAngle(degangle)
                     ci.cylinderlength = self.convertLen(dis)
-            ci.radius = self.convertLen(ci.entity.Surface.Radius)
+            #ci.radius = self.convertLen(ci.entity.Surface.Radius)
             ci.xyz = ci.entity.Surface.Center
             self.getvector(ci.entity.Surface.Center, ci)
         if 'Sphere' in ci.type:
@@ -604,7 +604,7 @@ class measureClass:
         edge = ci.entity
         ci.length = edge.Length
         ci.type = str(edge.Curve)
-        print(ci.type)
+        #print(ci.type)
         
         if 'Line' in ci.type:
             ci.xyz = edge.CenterOfMass
