@@ -876,6 +876,6 @@ class mApp(QtWidgets.QWidget):  # PySide2
     def initUI(self, msg):
         self.setGeometry(100, 100, 400, 300)
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-        QtGui.QMessageBox.question(self, 'Warning', msg, QtGui.QMessageBox.Ok|QtGui.QMessageBox.Ok)
+        QtWidgets.QMessageBox.question(self, 'Warning', msg, QtWidgets.QMessageBox.Ok|QtWidgets.QMessageBox.Ok)
         self.show()
 
