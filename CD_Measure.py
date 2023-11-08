@@ -115,7 +115,7 @@ class measureClass:
 
         if selectionslen == 1 and featsInf0 == 0:
             ''' If 1 selection but no features are selected then a is body selected.
-             Mesure body'''
+             Measure body'''
             name = selections[0].Object.Label
             totarea = self.convertArea(features0.Area)
             totVolume = self.convertVolume(features0.Volume)
@@ -176,32 +176,29 @@ class measureClass:
                     area = self.convertArea(f0.area)
                     g.msg = g.msg + '\nArea = {}\nFace Info'.format(area)
                 if 'Edge' in f0.fname:
+                    length = self.convertLen(f0.length)
                     if 'Line' in f0.type:
-                        length = self.convertLen(f0.length)
                         g.msg = 'Length = {}\nMid point of line\nx = {}\ny = {}\nz = {}'.format(length, f0.x, f0.y, f0.z)
-                    if 'Circle' in f0.type: 
-                        circ = self.convertLen(f0.length)
-                        g.msg = f'Radius = {f0.radius}\nDia = {f0.dia}\nEdge Length = {circ}\nCenter of Arc is:\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
-                    if 'Spline' in f0.type or 'Ellipse' in f0.type:
-                        shape = FreeCADGui.Selection.getSelectionEx()[0].Object.Shape
-                        faces = shape.ancestorsOfType(f0.entity, Part.Face)
-                        radii = []
-                        for face in faces:
-                            surf = face.Surface
-                            if hasattr(surf, "Radius"):
-                                radii.append(surf.Radius)
-                        lmsg = 'Connecting radii'
-                        for num in range(len(radii)):
-                            lmsg = lmsg + f'\nRad {num} = {self.convertLen(radii[num])}  dia = {self.convertLen(radii[num]*2)}'
-                        lmsg = lmsg +'\n'
-                        if 'Ellipse' in f0.type:
-                            g.msg = 'Ellipse\n' + lmsg
-                        else:
-                            g.msg = 'Spine\n' + lmsg
-                if g.msg == '':
-                    g.header = '\nI cannot measure that feature'
-                else:
-                    g.header = '{} of {}'.format(f0.fname, f0.bodyname)
+                    elif 'Circle' in f0.type: 
+                        g.msg = f'Radius = {f0.radius}\nDia = {f0.dia}\nEdge Length = {length}\nCenter of Arc is:\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
+                    elif 'Ellipse' in f0.type:
+                        majorradius = f0.entity.Curve.MajorRadius
+                        minorradius = f0.entity.Curve.MinorRadius
+                        lmsg = f'Length {length}' +'\n'
+                        lmsg = lmsg + f'Radii {self.convertLen(majorradius)}, {self.convertLen(minorradius)}' + '\n'
+                        g.msg = 'Ellipse\n' + lmsg                   
+                    elif 'Parabola' in f0.type:
+                        lmsg = f'Length {length}'
+                        g.msg = 'Parabola\n' + lmsg
+                    elif 'Hyperbola' in f0.type:
+                        lmsg = f'Length {length}'
+                        g.msg = 'Hyperbola\n' + lmsg
+                    elif 'Spline' in f0.type:
+                        lmsg = f'Length {length}'
+                        g.msg = 'Spline\n' + lmsg
+                    else:
+                        lmsg = f'Length {length}'
+                        g.msg = 'Unknown\n' + lmsg
             featsin1 = 0
 
             if selectionslen == 2:
