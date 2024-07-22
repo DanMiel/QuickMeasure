@@ -31,11 +31,9 @@ Version.04
 import os
 import FreeCAD
 import FreeCADGui
-import PySide2
-from PySide2 import QtGui, QtCore, QtWidgets
-from PySide2.QtGui import *
-#from PySide import QtGui, QtCore
-#from PySide.QtGui import *
+import PySide
+from PySide import QtGui, QtCore, QtWidgets
+from PySide.QtGui import *
 import math
 import numpy
 import Part
@@ -699,7 +697,7 @@ class createPoints():
         Point.ViewObject.PointSize = 10
         Point.ViewObject.PointColor = (55.0,0.0,0.0)
 
-class formMain(QtWidgets.QMainWindow):  # PySide2
+class (QtWidgets.QMainWindow):  # PySide
 
     def __init__(self, name):
         self.name = name
@@ -707,30 +705,30 @@ class formMain(QtWidgets.QMainWindow):  # PySide2
         self.setWindowTitle('Quick Measure')
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
         self.setStyleSheet("font:10pt arial MS")
-        self.txtboxReport = QtWidgets.QTextEdit(self)    # PySide2
-        self.btnclearAll = QtWidgets.QPushButton(self)   # PySide2
+        self.txtboxReport = QtWidgets.QTextEdit(self)    # PySide
+        self.btnclearAll = QtWidgets.QPushButton(self)   # PySide
 #        self.btnclearAll.setIcon(QtGui.QIcon(self.path + "icon.svg"))   # icon in a button (svg, png, bmp....)
 
         self.btnclearAll.setToolTip("Clear all")
         self.btnclearAll.setText("Clear")
         self.btnclearAll.clicked.connect(lambda:self.ClearAll())
         
-        self.btncopytoClipB = QtWidgets.QPushButton(self)   # PySide2
+        self.btncopytoClipB = QtWidgets.QPushButton(self)   # PySide
         self.btncopytoClipB.setToolTip("Copy text to clipboard")
         self.btncopytoClipB.setText("Copy")
         self.btncopytoClipB.clicked.connect(lambda:self.CopyToClipboard())
         
-        self.btnCloseForm = QtWidgets.QPushButton(self)   # PySide2
+        self.btnCloseForm = QtWidgets.QPushButton(self)   # PySide
         self.btnCloseForm.setToolTip("Close this form.")
         self.btnCloseForm.setText("Close")
         self.btnCloseForm.clicked.connect(lambda:self.closeme())
         
-        self.btnToggleOrgin = QtWidgets.QPushButton(self)   # PySide2
+        self.btnToggleOrgin = QtWidgets.QPushButton(self)   # PySide
         self.btnToggleOrgin.setToolTip("Toggles an Origin point, on and off,\nwhich can be used for measurements.")
         self.btnToggleOrgin.setText("Origin")
         self.btnToggleOrgin.clicked.connect(lambda:createPoints.ToggleOrigin(createPoints))
         
-        self.btnMidLine = QtWidgets.QPushButton(self)   # PySide2
+        self.btnMidLine = QtWidgets.QPushButton(self)   # PySide
         binfo = '''Select a line, edge or arc then select this button.
 A point will be created at the mid point of a the edge or center of the arc.
 You can then use the points for measurements.
@@ -739,7 +737,7 @@ You can then use the points for measurements.
         self.btnMidLine.setText("Mid Line, Arc Center")
         self.btnMidLine.clicked.connect(lambda:createPoints.midLine(createPoints))
         
-        self.btnDeleteMid = QtWidgets.QPushButton(self)    # PySide2
+        self.btnDeleteMid = QtWidgets.QPushButton(self)    # PySide
         self.btnDeleteMid.setToolTip("Deletes all points added to the middle of lines and center of circles.")
         self.btnDeleteMid.setText("Del Mid Points")
         #deletes all points with QM_ in the name
@@ -748,8 +746,8 @@ You can then use the points for measurements.
 #### Begin Layout ################################
 #https://koor.fr/Python/Tutoriel_PySide/pyside_layout_qgridlayout.wp
 
-        central_widget = QtWidgets.QWidget()      # PySide2
-        grid = QtWidgets.QGridLayout()            # PySide2
+        central_widget = QtWidgets.QWidget()      # PySide
+        grid = QtWidgets.QGridLayout()            # PySide
         self.setCentralWidget(central_widget)      
 
         grid.addWidget(self.btnclearAll, 0, 0)
@@ -767,7 +765,7 @@ You can then use the points for measurements.
 #### End Layout ###############################
  
     def CopyToClipboard(self):
-        memo = QtWidgets.QApplication.clipboard()    # PySide2
+        memo = QtWidgets.QApplication.clipboard()    # PySide
         txt = self.txtboxReport.toPlainText()
         memo.setText(u"{}".format(txt), mode = memo.Clipboard) # store in
         #memo.clear(mode=memo.Clipboard ) # clear clipBoard
@@ -861,7 +859,7 @@ class QuickMeasure:
 FreeCADGui.addCommand('QuickMeasureTool', QuickMeasure())
 #==============================================================================
 
-class mApp(QtWidgets.QWidget):  # PySide2
+class mApp(QtWidgets.QWidget):  # PySide
 #class mApp(QtGui.QWidget):     # PySide
     """This message box was added to make this file a standalone file"""
     # for error messages
