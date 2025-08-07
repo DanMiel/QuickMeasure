@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #***************************************************************************
 #*                                                                         *
-#*   Copyright (c) 2022 Dan Miel                                           *
+#*   Copyright (c) 2025 Carlo Dormeletti  Original version 2022 Dan Miel   *
 #*                                                                         *
 #*   This program is free software; you can redistribute it and/or modify  *
 #*   it under the terms of the GNU Lesser General Public License (LGPL)    *
@@ -24,18 +24,26 @@
 This can be used to see information about part features or to measure between features.
 Select one feature to view information or two features to see distance between them.
 The distance also show the x ,y ,z between them.
-Version.04
+Version.05
+
+This version was amended starting from code posted by from mario52:
+
+https://forum.freecad.org/viewtopic.php?style=5&p=675609#p675609
+
+Adapted to make it work on both Qt5 and Qt6
 """
 
 
 import os
 import FreeCAD
 import FreeCADGui
-import PySide2
-from PySide2 import QtGui, QtCore, QtWidgets
-from PySide2.QtGui import *
-#from PySide import QtGui, QtCore
-#from PySide.QtGui import *
+
+# Old style import to be compatible with Qt6
+from PySide import QtGui, QtCore
+from PySide.QtWidgets import (
+    QApplication, QGridLayout, QMainWindow, QMessageBox, QTextEdit, QPushButton,
+    QWidget) # noqa
+
 import math
 import numpy
 import Part
@@ -57,7 +65,6 @@ class info:
     def newinfo(self):
         self.area = 0
         self.centerofmass = 0
-        self.coneangle = 0
         self.cylinderlength = ''
         self.bodyname = ''
         self.dia = 0
@@ -65,7 +72,7 @@ class info:
         self.entity = None
         self.fname = ''
         self.type = ''
-        self.length = 0 
+        self.length = 0
         self.Name = " No info"
         self.normal = 0
         self.object = None
@@ -103,19 +110,9 @@ class measureClass:
         g.header = ''
         g.msg = ''
 
-        #print(str(selectionslen),str(len(selections[0].SubElementNames)))
-
-        #if SubElementName is only pad
-        if featsInf0 != 0:
-            str1 = selections[0].SubElementNames[0]
-            if '.' in str1:
-                str2 = str1.split(".",1)[1]
-                if str2 == '': 
-                    featsInf0 = 0
-
         if selectionslen == 1 and featsInf0 == 0:
             ''' If 1 selection but no features are selected then a is body selected.
-             Measure body'''
+             Mesure body'''
             name = selections[0].Object.Label
             totarea = self.convertArea(features0.Area)
             totVolume = self.convertVolume(features0.Volume)
@@ -147,7 +144,7 @@ class measureClass:
             if f0.entity.ShapeType == 'Vertex':self.getvertex(f0)
             if f0.entity.ShapeType == "Face":self.getface(f0)
             if f0.entity.ShapeType == "Edge":self.getedge(f0)
-            
+
             if selectionslen == 1 and featsInf0 == 1:
                 ''' If 1 feature is selected then measure feature.'''
                 if 'Vertex' in f0.fname:
@@ -160,9 +157,9 @@ class measureClass:
                         if len(str(f0.cylinderlength)) != 0:
                             g.msg = g.msg + '\nLength = ' + str(f0.cylinderlength)
                     if 'Cone' in f0.type:
-                        g.msg =f'Cone\nEnd1\nRadius = {f0.radius}\nDiameter = {f0.dia}\nEnd2\nRadius = {f0.radius2}\nDiameter = {f0.dia2}' 
+                        g.msg =f'Cone\nEnd1\nRadius = {f0.radius}\nDiameter = {f0.dia}\nEnd2\nRadius = {f0.radius2}\nDiameter = {f0.dia2}'
                         if len(str(f0.cylinderlength)) != 0:
-                            g.msg = g.msg + f'\nLength = {f0.cylinderlength}\nDraft/Taper = {f0.coneangle} per/side'
+                            g.msg = g.msg + '\nLength = ' + str(f0.cylinderlength)
                     if 'Plane' in f0.type:
                         g.msg = 'Plane'
                         if 'Round' in f0.type:
@@ -176,35 +173,38 @@ class measureClass:
                     area = self.convertArea(f0.area)
                     g.msg = g.msg + '\nArea = {}\nFace Info'.format(area)
                 if 'Edge' in f0.fname:
-                    length = self.convertLen(f0.length)
                     if 'Line' in f0.type:
+                        length = self.convertLen(f0.length)
                         g.msg = 'Length = {}\nMid point of line\nx = {}\ny = {}\nz = {}'.format(length, f0.x, f0.y, f0.z)
-                    elif 'Circle' in f0.type: 
-                        g.msg = f'Radius = {f0.radius}\nDia = {f0.dia}\nEdge Length = {length}\nCenter of Arc is:\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
-                    elif 'Ellipse' in f0.type:
-                        majorradius = f0.entity.Curve.MajorRadius
-                        minorradius = f0.entity.Curve.MinorRadius
-                        lmsg = f'Length {length}' +'\n'
-                        lmsg = lmsg + f'Radii {self.convertLen(majorradius)}, {self.convertLen(minorradius)}' + '\n'
-                        g.msg = 'Ellipse\n' + lmsg                   
-                    elif 'Parabola' in f0.type:
-                        lmsg = f'Length {length}'
-                        g.msg = 'Parabola\n' + lmsg
-                    elif 'Hyperbola' in f0.type:
-                        lmsg = f'Length {length}'
-                        g.msg = 'Hyperbola\n' + lmsg
-                    elif 'Spline' in f0.type:
-                        lmsg = f'Length {length}'
-                        g.msg = 'Spline\n' + lmsg
-                    else:
-                        lmsg = f'Length {length}'
-                        g.msg = 'Unknown\n' + lmsg
+                    if 'Circle' in f0.type:
+                        circ = self.convertLen(f0.length)
+                        g.msg = f'Radius = {f0.radius}\nDia = {f0.dia}\nEdge Length = {circ}\nCenter of Arc is:\nx = {f0.x}\ny = {f0.y}\nz = {f0.z}'
+                    if 'Spline' in f0.type or 'Ellipse' in f0.type:
+                        shape = FreeCADGui.Selection.getSelectionEx()[0].Object.Shape
+                        faces = shape.ancestorsOfType(f0.entity, Part.Face)
+                        radii = []
+                        for face in faces:
+                            surf = face.Surface
+                            if hasattr(surf, "Radius"):
+                                radii.append(surf.Radius)
+                        lmsg = 'Connecting radii'
+                        for num in range(len(radii)):
+                            lmsg = lmsg + f'\nRad {num} = {self.convertLen(radii[num])}  dia = {self.convertLen(radii[num]*2)}'
+                        lmsg = lmsg +'\n'
+                        if 'Ellipse' in f0.type:
+                            g.msg = 'Ellipse\n' + lmsg
+                        else:
+                            g.msg = 'Spine\n' + lmsg
+                if g.msg == '':
+                    g.header = '\nI cannot measure that feature'
+                else:
+                    g.header = '{} of {}'.format(f0.fname, f0.bodyname)
             featsin1 = 0
 
             if selectionslen == 2:
                 #If selection length is 2
                     featsin1 = len(selections[1].SubElementNames) #Check the number of entities in selection 1.
-            ''' sort to see if both features are on the same body or two bodies. ''' 
+            ''' sort to see if both features are on the same body or two bodies. '''
             if selectionslen == 1 and featsInf0 == 2 or selectionslen == 2 and featsInf0 == 1 and featsin1 == 1:
                 if selectionslen == 1: # If both features are on the (same body) get f1 feature
                     f1.fname = selections[0].SubElementNames[1]
@@ -238,7 +238,6 @@ class measureClass:
                         self.checkSurfaces()
         if g.msg == '':
             g.msg = 'Cannot calculate between selections'
-        
         form1.txtboxReport.setText(g.msg + '\n' + g.header)
             #end of program
 
@@ -316,7 +315,7 @@ class measureClass:
                     g.msg = self.getMsgBetween()
                 if 'Circle' in feattypes:
                     g.header = 'Curve center to Sphere center'
-                    g.msg = self.getMsgBetween()                
+                    g.msg = self.getMsgBetween()
             if 'Round' in feattypes and 'Circle' in feattypes:
                 g.msg = self.getMsgBetween()
                 g.header = 'Circle Center to Face Center'
@@ -328,13 +327,13 @@ class measureClass:
                 g.header = 'Center of Circle Edge to Plane'
                 g.msg = 'Distance = ' + self.convertLen(p2vDist)
             if 'Line' in feattypes and 'Cylinder' in feattypes or 'Cone' in feattypes:
-                g.header = "Line to CenterLine" 
+                g.header = "Line to CenterLine"
                 dist = 0
                 degstr = 0
                 dist, parallel = self.findDistBetweenLines(f0.vector, f1.vector,f0.point1,f1.point1)
                 degstr, angle = self.findanglebetweenlines(f0.vector, f1.vector)
                 dist = self.convertLen(dist)
-                
+
                 if parallel:
                   g.msg = f'Line and Centerline are parallel\nClosest dist = {dist}'
                 else:
@@ -342,16 +341,16 @@ class measureClass:
                     g.msg = f'Line and Centerline are not parallel\nClosest dist = {dist}\nAngle = {degstr}'
 
             if 'Line' in feattypes and 'Plane' in feattypes:
-                ang = math.degrees(f0.vector.getAngle(f1.vector))                
-                comang = abs(90 + ang) #changed from comang = abs(90 - ang) on 2023-04-24
+                ang = math.degrees(f0.vector.getAngle(f1.vector))
+                comang = abs(90-ang)
                 degstr = self.convertAngle(comang)
                 if comang == 0:
-                    dist = 0                    
+                    dist = 0
                     diststr = self.findPlaneToLineDistance()
-                    g.msg = f'Line is parallel to plane\nDistance = {diststr}'
+                    g.msg = 'Line is parallel to plane\nDistance = {diststr}'
                 else:
                     g.msg = f'Line is not parralllel to plane\nDegrees = {degstr}'
-                g.header = 'Degrees beetween plane and line'                
+                g.header = 'Degrees beetween plane and line'
          #End of edges
 
     def checkSurfaces(self):
@@ -359,13 +358,12 @@ class measureClass:
         if 'Face' in f0.fname and 'Face' in f1.fname:
             if 'Plane' in f0.type and'Plane' in f1.type:
                 myangle = math.degrees( f0.normal.getAngle( f1.normal))
-                myangle = 180 - myangle #added 2023-04-24 for draft
                 anglestring = self.convertAngle(myangle)
                 g.header = f0.fname + ' and ' + f1.fname
                 if myangle == 90 or myangle == 270:
                     g.msg = 'Planes are Normal ' + anglestring
                 elif myangle == 0 or myangle == 180:
-                    
+
                     d = f0.entity.Surface.projectPoint(f1.entity.valueAt(0, 0), 'Distance')
                     d = f0.xyz.distanceToPlane(f1.xyz, f1.normal)
                     dists = self.convertLen(d)
@@ -382,22 +380,22 @@ class measureClass:
 
             feattypes = f0.type + f1.type
             if 'Cylinder' in f0.type and 'Cylinder' in f1.type or 'Cone' in f0.type or 'Cone' in f1.type:
-                if not 'Plane' in feattypes:                   
+                if not 'Plane' in feattypes:
                     g.header = 'Center Line to Center Line'
                     ''' Find angle of between centerlines. '''
                     parallel = False
-                    dist = 0      
+                    dist = 0
                     dist, parallel = self.findDistBetweenLines(f0.vector, f1.vector, f0.point1, f1.point1)
                     diststr = self.convertLen(dist)
                     if dist == 0:
-                        g.msg = 'Cannot measure because\none of the cylinders ends in spline'                    
+                        g.msg = 'Cannot measure because\none of the cylinders ends in spline'
                     else:
                         if parallel:
                             g.msg = 'Features are parallel\nDist between = ' + diststr
                         else:
                             degstr, angle = self.findanglebetweenlines(f0.vector,f1.vector)
                             g.msg = 'Features are not parallel\nAngle = {}\nClosest dist between CL = {}'.format(degstr, diststr)
-            
+
             if 'Sphere' in feattypes and 'Round' in feattypes:
                 g.header = 'Sphere center to round face center'
                 g.msg = self.getMsgBetween()
@@ -413,10 +411,10 @@ class measureClass:
                 if round(comang,10) == 0:
                     g.msg = f'Centerline and plane is parallel\nDist = {diststr}'
                 else:
-                    g.msg = f'Centerline and plane are not parallel\nAngle = {round(comang, 10)}\nDistance = {diststr}'
+                    g.msg = f'Centerline and plane are not parallel\nAngle = {round(ang, 10)}\nDistance = {diststr}'
             area = self.convertArea(f0.area + f1.area)
             g.msg = g.msg + '\nTotal Area = {}'.format(area)
- 
+
     def check2plus(self, selections, selectionslen):
         # check when selections are 3 or more
         numoffeats = 0
@@ -459,11 +457,11 @@ class measureClass:
         return(lmsg)
 
 
- 
+
     def getvertexToPlane(self):
         # This sub is from plne to a point. Any xyz.
         if 'Plane' in f0.type:
-            #(f0.entity.Vertexes[0].Point)
+            print(f0.entity.Vertexes[0].Point)
             print(f0.vector)
             distance = f1.xyz.distanceToPlane(f0.entity.Vertexes[0].Point, f0.vector)
         else:
@@ -477,7 +475,7 @@ class measureClass:
         if 'Plane' in f1.type:
             dist = f0.xyz.distanceToPlane(f1.xyz, f1.vector)
         else:
-            dist = f1.xyz.distanceToPlane(f0.xyz, f0.vector)                    
+            dist = f1.xyz.distanceToPlane(f0.xyz, f0.vector)
         diststr = self.convertLen(dist)
         return(diststr)
 
@@ -528,37 +526,23 @@ class measureClass:
                 ci.vector = ci.entity.Surface.Axis
         ci.normal = face.normalAt(0, 0)
         ci.area = face.Area
-
-        if "Plane" in ci.type:  # and ci.xyz == 'n':
+        if "Plane" in ci.type and ci.xyz == 'n':
             ci.xyz = ci.entity.CenterOfMass
             ci.vector = ci.entity.Surface.Axis
-
-        if 'BSplineSurface' in ci.type:# and ci.xyz == 'n':
-            ci.type = 'BPlane'
-            ci.xyz = ci.entity.CenterOfMass
-            #print('Im in BSplineSurface')
-            ci.vector = ci.entity.normalAt(0, 0)
-
-
         if 'Cylinder' in ci.type or 'Cone' in ci.type:
             ''' Find two centers in cylinders'''
             edgetypes2 = ''
             ci.vector = ci.entity.Surface.Axis
-            radius1 = 0
-            radius2 = 0
             for e in face.Edges:
                 rstr = str(e.Curve)
                 if 'Radius' in rstr:
                     if ci.point1 == 0:
-                        #Get first Radius of Cone
-                        radius1 = e.Curve.Radius
+                        #Get first Radius
                         ci.point1 = e.Curve.Center
-                        ci.radius = self.convertLen(e.Curve.Radius)
+                        ci.radius = self.convertLen(e.Curve.Radius)[0]
                         ci.dia = self.convertLen(2 * e.Curve.Radius)
-                        
                     if ci.point1 != 0 and e.Curve.Center != ci.point1:
                         # Get second radius
-                        radius2 = e.Curve.Radius
                         ci.radius2 = self.convertLen(e.Curve.Radius)
                         ci.dia2 = self.convertLen(2 * e.Curve.Radius)
                         ci.point2 = e.Curve.Center
@@ -572,15 +556,8 @@ class measureClass:
             else:
                 dis = self.findpointsdistance(ci.point1, ci.point2)[3]
                 if dis != 0:
-                    #added for angle
-                    opposite = abs(radius1 - radius2)
-                    sine = math.sin(opposite/dis)
-                    radang = math.asin(sine)
-                    radang = math.atan2(opposite,dis)
-                    degangle = math.degrees(radang)
-                    ci.coneangle = self.convertAngle(degangle)
                     ci.cylinderlength = self.convertLen(dis)
-            #ci.radius = self.convertLen(ci.entity.Surface.Radius)
+            ci.radius = self.convertLen(ci.entity.Surface.Radius)
             ci.xyz = ci.entity.Surface.Center
             self.getvector(ci.entity.Surface.Center, ci)
         if 'Sphere' in ci.type:
@@ -601,21 +578,12 @@ class measureClass:
         edge = ci.entity
         ci.length = edge.Length
         ci.type = str(edge.Curve)
-        #print(ci.type)
-        
         if 'Line' in ci.type:
             ci.xyz = edge.CenterOfMass
             self.getvector(edge.CenterOfMass, ci)
             ci.point1 = edge.Vertexes[0].Point
-            ci.point2 = edge.Vertexes[1].Point            
-            ci.vector = edge.Curve.Direction
-        if 'BezierCurve' in ci.type:            
-            ci.xyz = edge.CenterOfMass
-            self.getvector(edge.CenterOfMass, ci)
-            ci.point1 = edge.Vertexes[0].Point
             ci.point2 = edge.Vertexes[1].Point
-            g.msg = 'This is a BezierCurve.\nI cannot measure it'
-            return
+            ci.vector = edge.Curve.Direction
         if 'Circle' in ci.type:
             ci.radius = self.convertLen(edge.Curve.Radius)
             ci.dia = self.convertLen(2 * edge.Curve.Radius)
@@ -629,7 +597,7 @@ class measureClass:
         ci.xyz = vertex.Point
         self.getvector(ci.xyz, ci)
         return(ci)
-    
+
     def getvector(self, vector, ci):
         ci.xyz = vector
         x, y, z = ci.xyz
@@ -674,17 +642,20 @@ class createPoints():
         sels = FreeCADGui.Selection.getSelectionEx('', 0)
         if len(sels) == 0 :
             return()
+        featname = sels[0].SubElementNames[0]
+        print(featname)
+        if 'Edge' in featname:
+            entity = sels[0].Object.getSubObject(featname)
+            print(entity.Curve)
+            if "Line" in str(entity.Curve):
+                self.createpoint(self, 'QM_Mid',entity.CenterOfMass)
 
-        for sel in sels:
-            for featname in sel.SubElementNames:
-                if 'Edge' in featname:
-                    entity = sel.Object.getSubObject(featname)
-                    if "Line" in str(entity.Curve):
-                        self.createpoint(self, 'QM_Mid',entity.CenterOfMass)
-                    if 'Radius' in str(entity.Curve):
-                        self.createpoint(self, 'QM_Circle Center',entity.Curve.Center)
+            if 'Radius' in str(entity.Curve):
+                print(entity.Curve.Center)
+                self.createpoint(self, 'QM_Circle Center',entity.Curve.Center)
 
     def deletepoints(self, pname):
+        print(pname)
         found = True
         for obj in FreeCAD.ActiveDocument.Objects:
             if pname in obj.Label:
@@ -699,38 +670,45 @@ class createPoints():
         Point.ViewObject.PointSize = 10
         Point.ViewObject.PointColor = (55.0,0.0,0.0)
 
-class formMain(QtWidgets.QMainWindow):  # PySide2
+class formMain(QMainWindow):
 
     def __init__(self, name):
         self.name = name
         super(formMain, self).__init__()
         self.setWindowTitle('Quick Measure')
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+#        self.setGeometry(280, 150, 300, 200)
         self.setStyleSheet("font:10pt arial MS")
-        self.txtboxReport = QtWidgets.QTextEdit(self)    # PySide2
-        self.btnclearAll = QtWidgets.QPushButton(self)   # PySide2
-#        self.btnclearAll.setIcon(QtGui.QIcon(self.path + "icon.svg"))   # icon in a button (svg, png, bmp....)
+
+        self.txtboxReport = QTextEdit(self)
+
+        self.btnclearAll = QPushButton(self)
+
 
         self.btnclearAll.setToolTip("Clear all")
         self.btnclearAll.setText("Clear")
         self.btnclearAll.clicked.connect(lambda:self.ClearAll())
-        
-        self.btncopytoClipB = QtWidgets.QPushButton(self)   # PySide2
+        self.btnclearAll.setStyleSheet("padding:2px")
+
+        self.btncopytoClipB = QPushButton(self)
         self.btncopytoClipB.setToolTip("Copy text to clipboard")
         self.btncopytoClipB.setText("Copy")
         self.btncopytoClipB.clicked.connect(lambda:self.CopyToClipboard())
-        
-        self.btnCloseForm = QtWidgets.QPushButton(self)   # PySide2
+        self.btncopytoClipB.setStyleSheet("padding:2px")
+
+        self.btnCloseForm = QPushButton(self)
         self.btnCloseForm.setToolTip("Close this form.")
         self.btnCloseForm.setText("Close")
         self.btnCloseForm.clicked.connect(lambda:self.closeme())
-        
-        self.btnToggleOrgin = QtWidgets.QPushButton(self)   # PySide2
+        self.btnCloseForm.setStyleSheet("padding:2px")
+
+        self.btnToggleOrgin = QPushButton(self)
         self.btnToggleOrgin.setToolTip("Toggles an Origin point, on and off,\nwhich can be used for measurements.")
         self.btnToggleOrgin.setText("Origin")
         self.btnToggleOrgin.clicked.connect(lambda:createPoints.ToggleOrigin(createPoints))
-        
-        self.btnMidLine = QtWidgets.QPushButton(self)   # PySide2
+        self.btnToggleOrgin.setStyleSheet("padding:2px")
+
+        self.btnMidLine = QPushButton(self)
         binfo = '''Select a line, edge or arc then select this button.
 A point will be created at the mid point of a the edge or center of the arc.
 You can then use the points for measurements.
@@ -738,19 +716,22 @@ You can then use the points for measurements.
         self.btnMidLine.setToolTip(binfo)
         self.btnMidLine.setText("Mid Line, Arc Center")
         self.btnMidLine.clicked.connect(lambda:createPoints.midLine(createPoints))
-        
-        self.btnDeleteMid = QtWidgets.QPushButton(self)    # PySide2
+        self.btnMidLine.setStyleSheet("padding:2px")
+
+        self.btnDeleteMid = QPushButton(self)
         self.btnDeleteMid.setToolTip("Deletes all points added to the middle of lines and center of circles.")
         self.btnDeleteMid.setText("Del Mid Points")
         #deletes all points with QM_ in the name
         self.btnDeleteMid.clicked.connect(lambda:createPoints.deletepoints(createPoints, 'QM_'))
+        self.btnDeleteMid.setStyleSheet("padding:2px")
 
-#### Begin Layout ################################
-#https://koor.fr/Python/Tutoriel_PySide/pyside_layout_qgridlayout.wp
+        #### Begin Layout ###
+        # https://koor.fr/Python/Tutoriel_PySide/pyside_layout_qgridlayout.wp
 
-        central_widget = QtWidgets.QWidget()      # PySide2
-        grid = QtWidgets.QGridLayout()            # PySide2
-        self.setCentralWidget(central_widget)      
+        central_widget = QWidget()
+        grid = QGridLayout()
+
+        self.setCentralWidget(central_widget)
 
         grid.addWidget(self.btnclearAll, 0, 0)
         grid.addWidget(self.btncopytoClipB, 0, 1)
@@ -764,13 +745,12 @@ You can then use the points for measurements.
 
         central_widget.setLayout(grid)
 
-#### End Layout ###############################
- 
+    ### End Layout ###
+
     def CopyToClipboard(self):
-        memo = QtWidgets.QApplication.clipboard()    # PySide2
+        memo = QApplication.clipboard()
         txt = self.txtboxReport.toPlainText()
         memo.setText(u"{}".format(txt), mode = memo.Clipboard) # store in
-        #memo.clear(mode=memo.Clipboard ) # clear clipBoard
 
 
     def ClearAll(self):
@@ -858,11 +838,12 @@ class QuickMeasure:
 
     def IsActive(self):
         return(True)
+
 FreeCADGui.addCommand('QuickMeasureTool', QuickMeasure())
+
 #==============================================================================
 
-class mApp(QtWidgets.QWidget):  # PySide2
-#class mApp(QtGui.QWidget):     # PySide
+class mApp(QWidget):
     """This message box was added to make this file a standalone file"""
     # for error messages
     def __init__(self, msg, msgtype ='ok'):
@@ -873,6 +854,5 @@ class mApp(QtWidgets.QWidget):  # PySide2
     def initUI(self, msg):
         self.setGeometry(100, 100, 400, 300)
         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
-        QtWidgets.QMessageBox.question(self, 'Warning', msg, QtWidgets.QMessageBox.Ok|QtWidgets.QMessageBox.Ok)
+        QMessageBox.question(self, 'Warning', msg, QMessageBox.Ok|QMessageBox.Ok)
         self.show()
-
